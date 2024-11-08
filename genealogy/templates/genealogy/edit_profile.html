@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock title %}
+
+{% block content %}
+    <h1>Edit Profile</h1>
+    <p>Edit your profile using the following form:</p>
+    <form method="post" enctype="multipart/form-data">
+        {{ user_form.as_p }}
+        {{ profile_form.as_p }}
+        {% csrf_token %}
+        <p><input type="submit" value="Update profile"></p>
+    </form>
+{% endblock content %}

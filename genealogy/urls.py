@@ -8,6 +8,6 @@ urlpatterns = [
     path('images/', views.images, name='images'),
     path('search/', views.search, name='search'),
     path('family_tree/', views.family_tree, name='family_tree'),
-    path('profile/', views.profile, name='profile'),
     path('register/', views.register, name='register'),
+    path('edit_profile/', views.edit_profile, name='edit_profile'),
 ]
