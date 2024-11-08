@@ -14,13 +14,16 @@
                     <a href="{% url "home" %}">Home</a>
                 </li>
                 <li {% if section == "tree" %}class="selected"{% endif %}>
-                    <a href="#">Family Tree</a>
+                    <a href="{% url "family_tree" %}">Family Tree</a>
                 </li>
                 <li {% if section == "search" %}class="selected"{% endif %}>
-                    <a href="#">Search</a>
+                    <a href="{% url "search" %}">Search</a>
                 </li>
                 <li {% if section == "images" %}class="selected"{% endif %}>
-                    <a href="#">Images</a>
+                    <a href="{% url "images" %}">Images</a>
+                </li>
+                <li {% if section == "profile" %}class="selected"{% endif %}>
+                    <a href="{% url "profile" %}">Profile</a>
                 </li>
             </ul>
         {% endif %}

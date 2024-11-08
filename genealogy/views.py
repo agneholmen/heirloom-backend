@@ -12,6 +12,38 @@ def home(request):
         {'section': 'home'}
     )
 
+@login_required
+def family_tree(request):
+    return render(
+        request,
+        'genealogy/family_tree.html',
+        {'section': 'family_tree'}
+    )
+
+@login_required
+def images(request):
+    return render(
+        request,
+        'genealogy/images.html',
+        {'section': 'images'}
+    )
+
+@login_required
+def search(request):
+    return render(
+        request,
+        'genealogy/search.html',
+        {'section': 'search'}
+    )
+
+@login_required
+def profile(request):
+    return render(
+        request,
+        'genealogy/profile.html',
+        {'section': 'profile'}
+    )
+
 def user_login(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
