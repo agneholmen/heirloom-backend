@@ -5,11 +5,11 @@ from django.shortcuts import render
 from .forms import LoginForm, UserRegistrationForm
 
 @login_required
-def dashboard(request):
+def home(request):
     return render(
         request,
-        'genealogy/dashboard.html',
-        {'section': 'dashboard'}
+        'genealogy/home.html',
+        {'section': 'home'}
     )
 
 def user_login(request):

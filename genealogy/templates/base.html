@@ -7,17 +7,20 @@
 </head>
 <body>
     <div id="header">
-        <span class="logo">Bookmarks</span>
+        <span class="logo">Project Heirloom</span>
         {% if request.user.is_authenticated %}
             <ul class="menu">
-                <li {% if section == "dashboard" %}class="selected"{% endif %}>
-                    <a href="{% url "dashboard" %}">My dashboard</a>
+                <li {% if section == "home" %}class="selected"{% endif %}>
+                    <a href="{% url "home" %}">Home</a>
+                </li>
+                <li {% if section == "tree" %}class="selected"{% endif %}>
+                    <a href="#">Family Tree</a>
+                </li>
+                <li {% if section == "search" %}class="selected"{% endif %}>
+                    <a href="#">Search</a>
                 </li>
                 <li {% if section == "images" %}class="selected"{% endif %}>
                     <a href="#">Images</a>
-                </li>
-                <li {% if section == "people" %}class="selected"{% endif %}>
-                    <a href="#">People</a>
                 </li>
             </ul>
         {% endif %}
