@@ -55,3 +55,6 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['date_of_birth', 'photo', 'description', 'sex']
+
+class UploadFileForm(forms.Form):
+    file = forms.FileField()

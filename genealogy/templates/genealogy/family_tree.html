@@ -4,5 +4,15 @@
 
 {% block content %}
     <h1>Family Tree</h1>
-    <p>On this page you will be able to view or upload your family tree.</p>
+    {% if trees %}
+        <p>You currently have {{ trees|length }} {% if trees|length == 1 %}tree{% else %}trees{% endif %} uploaded.</p>
+    {% else %}
+        <p>You currently have no uploaded trees.</p>
+    {% endif %}
+    <p>Upload a GEDCOM using the following form:</p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ upload_form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
 {% endblock content %}

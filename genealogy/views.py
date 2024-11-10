@@ -7,9 +7,12 @@ from .forms import (
     LoginForm, 
     UserRegistrationForm,
     UserEditForm,
-    ProfileEditForm
+    ProfileEditForm,
+    UploadFileForm
 )
-from .models import Profile
+from .models import Profile, Tree
+
+from . import gedcom
 
 @login_required
 def home(request):
@@ -21,10 +24,26 @@ def home(request):
 
 @login_required
 def family_tree(request):
+    if request.method == "POST":
+        form = UploadFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            new_tree = Tree(user=request.user, gedcom_file=request.FILES["file"])
+            new_tree.save()
+            gedcom.handle_uploaded_file(new_tree)
+
+    else:
+        form = UploadFileForm()
+
+    trees = Tree.objects.filter(user=request.user)
+
     return render(
         request,
         'genealogy/family_tree.html',
-        {'section': 'family_tree'}
+        {
+            'section': 'family_tree',
+            'upload_form': form,
+            'trees': trees
+        }
     )
 
 @login_required
