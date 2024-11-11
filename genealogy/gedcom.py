@@ -400,6 +400,9 @@ def handle_uploaded_file(tree):
     tree.name = gedcom_tree.name
     tree.save()
 
+    # List of Individual entries to bulk add to DB
+    individuals = []
+
     for id, props in gedcom_tree.individuals.items():
         ind = Individual()
         ind.indi_id = id
@@ -412,7 +415,10 @@ def handle_uploaded_file(tree):
         ind.death_date = props.death['date']
         ind.death_place = props.death['place']
         ind.death_cause = props.death['cause']
-        ind.save()
+        individuals.append(ind)
+
+    # Bulk add objects to improve performance
+    Individual.objects.bulk_create(individuals)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
