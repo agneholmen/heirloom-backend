@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -76,6 +77,68 @@ class Individual(models.Model):
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
     
+
+class Family(models.Model):
+    family_id = models.CharField(max_length=20)
+    tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
+    husband = models.ForeignKey(
+        Individual,
+        on_delete=models.SET_NULL,
+        related_name="families_as_husband",
+        null=True,
+        blank=True
+    )
+    wife = models.ForeignKey(
+        Individual,
+        on_delete=models.SET_NULL,
+        related_name="families_as_wife",
+        null=True,
+        blank=True
+    )
+    marriage_date = models.CharField(max_length=100, null=True, blank=True)
+    marriage_place = models.CharField(max_length=100, null=True, blank=True)
+
+    def clean(self):
+        if self.husband and self.husband.tree != self.tree:
+            raise ValidationError("Husband must belong to the same tree as the family.")
+        if self.wife and self.wife.tree != self.tree:
+            raise ValidationError("Wife must be long to the same tree as the family.")
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['tree', 'family_id'], name='Tree and family combination')
+        ]
+        verbose_name_plural = "Families"
+
+class Child(models.Model):
+    family = models.ForeignKey(
+        Family,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True                       
+    )
+    indi = models.ForeignKey(
+        Individual,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    tree = models.ForeignKey(
+        Tree, 
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['family', 'indi'], name='Individual and family combination')
+        ]
+        verbose_name_plural = "Children"
 
 # Removes the GEDCOM file when you remove a Tree instance
 @receiver(post_delete, sender=Tree)

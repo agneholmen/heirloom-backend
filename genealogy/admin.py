@@ -1,5 +1,11 @@
 from django.contrib import admin
-from .models import Profile, Tree, Individual
+from .models import (
+    Child, 
+    Family, 
+    Profile, 
+    Tree, 
+    Individual
+)
 
 
 @admin.register(Profile)
@@ -19,3 +25,13 @@ class IndividualAdmin(admin.ModelAdmin):
         'birth_place', 'death_date', 'death_place', 'death_cause'
     ]
     raw_id_fields = ['tree']
+
+@admin.register(Family)
+class FamilyAdmin(admin.ModelAdmin):
+    list_display = [
+        'family_id', 'tree', 'husband', 'wife', 'marriage_date', 'marriage_place'
+    ]
+
+@admin.register(Child)
+class ChildAdmin(admin.ModelAdmin):
+    list_display = ['family', 'indi', 'tree']

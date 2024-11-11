@@ -3,8 +3,7 @@ import io
 import os
 import re
 
-from genealogy.models import Individual
-from genealogy.models import Tree
+from genealogy.models import Child, Family, Individual, Tree
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 GEDFILE = os.path.join(CURRENT_DIR, 'Danielsson-1.ged')
@@ -91,7 +90,7 @@ class Ind:
                     self.death['date'], self.death['place'])
 
 
-class Family:
+class FamilyGC:
     def __init__(self, fam_id):
         self.id = fam_id
         self.husband = ''
@@ -259,7 +258,7 @@ class Gedcom:
         matches = FAM_REGEX.match(lines[start_index])
         level = matches.group(1)
         fam_id = matches.group(2)
-        family = Family(fam_id)
+        family = FamilyGC(fam_id)
         current_index = start_index
 
         for index, line in enumerate(lines[start_index + 1:]):
@@ -386,12 +385,6 @@ def main():
     else:
         print("No potential duplicates found!")
 
-def add_people():
-    tree = Gedcom(GEDFILE)
-
-    for id, props in tree.individuals.items():
-        ind = Individual(id)
-
 def clear_db():
     Individual.objects.all().delete()
 
@@ -402,6 +395,8 @@ def handle_uploaded_file(tree):
 
     # List of Individual entries to bulk add to DB
     individuals = []
+    families = []
+    children = []
 
     for id, props in gedcom_tree.individuals.items():
         ind = Individual()
@@ -415,18 +410,31 @@ def handle_uploaded_file(tree):
         ind.death_date = props.death['date']
         ind.death_place = props.death['place']
         ind.death_cause = props.death['cause']
+
         individuals.append(ind)
 
     # Bulk add objects to improve performance
     Individual.objects.bulk_create(individuals)
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--mode", dest="mode", choices=["clear", "update"])
-    parser.add_argument("-f", "--file", dest="file", default="Danielsson-1.ged")
-    args = parser.parse_args()    
-    if args.mode == 'clear':
-        clear_db()
-    elif args.mode == 'update':
-        add_people()
+    for id, props in gedcom_tree.families.items():
+        fam = Family()
+        fam.tree = tree
+        fam.family_id = id
+        if props.husband:
+            husband = Individual.objects.get(tree=tree, indi_id=props.husband)
+            fam.husband = husband
+        if props.wife:
+            wife = Individual.objects.get(tree=tree, indi_id=props.wife)
+            fam.wife = wife
+        for c in props.children:
+            child = Child()
+            child.family = fam
+            child_indi = Individual.objects.get(tree=tree, indi_id=c)
+            child.indi = child_indi
+            children.append(child)
+            child.tree = tree
 
+        families.append(fam)
+
+    Family.objects.bulk_create(families)
+    Child.objects.bulk_create(children)
