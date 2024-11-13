@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Tree
 
 
 class LoginForm(forms.Form):
@@ -58,3 +58,26 @@ class ProfileEditForm(forms.ModelForm):
 
 class UploadFileForm(forms.Form):
     file = forms.FileField()
+
+class SearchForm(forms.Form):
+    tree = forms.ModelChoiceField(
+        queryset=Tree.objects.none(),  # Set initial queryset as empty
+        required=True,
+        blank=False,
+        label="Select Tree",
+        empty_label=None
+    )
+
+    name = forms.CharField(
+        label="Name",
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter name"})
+    )
+
+    birth_place = forms.CharField(
+        label="Birth Place",
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter birth place"})
+    )

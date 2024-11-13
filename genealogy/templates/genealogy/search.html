@@ -4,5 +4,21 @@
 
 {% block content %}
     <h1>Search</h1>
-    <p>On this page you will be able to search in your family tree.</p>
+    {% if not trees %}
+        <p>You currently have no uploaded trees.</p>
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            {{ search_form.as_p }}
+            <button type="submit">Search</button>
+        </form>
+    {% endif %}
+    {% if people %}
+        <p>Search results:</p>
+        {% for person in people %}
+            <p>{{ person.first_name }} {{ person.last_name }}</p>
+        {% endfor %}
+        <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
+    {% endif %}
+    
 {% endblock content %}

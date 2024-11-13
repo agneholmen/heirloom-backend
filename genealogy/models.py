@@ -7,6 +7,11 @@ from django.utils.translation import gettext_lazy as _
 from datetime import date
 
 
+def users_file_location(instance, filename):
+    date_string = date.today().strftime("%Y/%m/%d")
+    return f"users/{instance.user.username}/{date_string}/{filename}"
+
+
 class Profile(models.Model):
     class Sex(models.TextChoices):
         MALE = "M", _("Male")
@@ -20,7 +25,7 @@ class Profile(models.Model):
     )
     date_of_birth = models.DateField(blank=True, null=True)
     photo = models.ImageField(
-        upload_to='users/%Y/%m/%d',
+        upload_to=users_file_location,
         blank=True
     )
     description = models.TextField(blank=True, null=True)
@@ -46,9 +51,12 @@ class Tree(models.Model):
         max_length=100
     )
     gedcom_file = models.FileField(
-        upload_to='users/%Y/%m/%d',
+        upload_to=users_file_location,
         blank=True
     )
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Individual(models.Model):

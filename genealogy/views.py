@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
 from .forms import (
@@ -8,11 +9,18 @@ from .forms import (
     UserRegistrationForm,
     UserEditForm,
     ProfileEditForm,
+    SearchForm,
     UploadFileForm
 )
-from .models import Profile, Tree
+from .models import (
+    Individual, 
+    Profile, 
+    Tree
+)
 
 from . import gedcom
+
+from functools import reduce
 
 @login_required
 def home(request):
@@ -56,10 +64,52 @@ def images(request):
 
 @login_required
 def search(request):
+    trees = Tree.objects.filter(user=request.user)
+
+    if request.method == 'POST':
+        search_form = SearchForm(request.POST)
+        search_form.fields["tree"].queryset = trees
+        if search_form.is_valid():
+            cd = search_form.cleaned_data
+            
+            and_condition = Q(tree=cd['tree'])
+            or_conditions = []
+            conditions = [Q(tree=cd['tree'])]
+            if cd['name']:
+                or_conditions.append(Q(first_name__icontains=cd['name']))
+                or_conditions.append(Q(last_name__icontains=cd['name']))
+            if cd['birth_place']:
+                or_conditions.append(Q(birth_place__icontains=cd['birth_place']))
+
+            combined_or_conditions = reduce(lambda x, y: x | y, or_conditions)
+
+            final_query = combined_or_conditions & and_condition
+
+            people = Individual.objects.filter(final_query)
+
+            return render(
+                request,
+                'genealogy/search.html',
+                {
+                    'section': 'search',
+                    'trees': trees,
+                    'search_form': search_form,
+                    'people': people
+                }
+            )
+            
+    else:
+        search_form = SearchForm()
+        search_form.fields["tree"].queryset = trees
+
     return render(
         request,
         'genealogy/search.html',
-        {'section': 'search'}
+        {
+            'section': 'search',
+            'trees': trees,
+            'search_form': search_form
+        }
     )
 
 def user_login(request):

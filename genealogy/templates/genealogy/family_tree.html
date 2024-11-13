@@ -5,7 +5,7 @@
 {% block content %}
     <h1>Family Tree</h1>
     {% if trees %}
-        <p>You currently have {{ trees|length }} {% if trees|length == 1 %}tree{% else %}trees{% endif %} uploaded.</p>
+        <p>You currently have {{ trees|length }} tree{{ trees|pluralize }} uploaded.</p>
     {% else %}
         <p>You currently have no uploaded trees.</p>
     {% endif %}
