@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Person{% endblock title %}
+
+{% block content %}
+    <h1>{{ person.first_name }} {{ person.last_name}}</h1>
+    <p>Name: {{ person.first_name }} {{ person.last_name}}</p>
+    {% if person.birth_place %}
+        <p>Birth Place: {{ person.birth_place }}</p>
+    {% endif %}
+    {% if person.birth_date %}
+        <p>Birth Date: {{ person.birth_date }}</p>
+    {% endif %}
+    {% if person.death_place %}
+        <p>Death Place: {{ person.death_place }}</p>
+    {% endif %}
+    {% if person.death_date %}
+        <p>Death Date: {{ person.death_date }}</p>
+    {% endif %}
+    {% if person.death_cause %}
+        <p>Death Cause: {{ person.death_cause }}</p>
+    {% endif %}
+{% endblock content %}
+

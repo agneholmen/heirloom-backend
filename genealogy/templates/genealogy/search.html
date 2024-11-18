@@ -7,8 +7,7 @@
     {% if not trees %}
         <p>You currently have no uploaded trees.</p>
     {% else %}
-        <form method="post">
-            {% csrf_token %}
+        <form method="get">
             {{ search_form.as_p }}
             <button type="submit">Search</button>
         </form>
@@ -16,9 +15,8 @@
     {% if people %}
         <p>Search results:</p>
         {% for person in people %}
-            <p>{{ person.first_name }} {{ person.last_name }}</p>
+            <p><a href="{% url 'person' person.id %}">{{ person.first_name }} {{ person.last_name }}</a></p>
         {% endfor %}
         <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
     {% endif %}
-    
 {% endblock content %}

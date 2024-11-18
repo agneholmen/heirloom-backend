@@ -59,6 +59,13 @@ class ProfileEditForm(forms.ModelForm):
 class UploadFileForm(forms.Form):
     file = forms.FileField()
 
+class NewTreeForm(forms.Form):
+    name = forms.CharField(
+        label="Name",
+        required=True
+    )
+
+
 class SearchForm(forms.Form):
     tree = forms.ModelChoiceField(
         queryset=Tree.objects.none(),  # Set initial queryset as empty
@@ -80,4 +87,25 @@ class SearchForm(forms.Form):
         max_length=200,
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Enter birth place"})
+    )
+
+    birth_date = forms.CharField(
+        label="Birth Date",
+        max_length=25,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter birth date"})
+    )
+
+    death_place = forms.CharField(
+        label="Death Place",
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter death place"})
+    )
+
+    death_date = forms.CharField(
+        label="Death Date",
+        max_length=25,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter death date"})
     )

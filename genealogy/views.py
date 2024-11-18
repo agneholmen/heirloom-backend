@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render
 from .forms import (
     LoginForm, 
@@ -66,20 +66,25 @@ def images(request):
 def search(request):
     trees = Tree.objects.filter(user=request.user)
 
-    if request.method == 'POST':
-        search_form = SearchForm(request.POST)
+    if request.method == 'GET' and request.GET:
+        search_form = SearchForm(request.GET)
         search_form.fields["tree"].queryset = trees
         if search_form.is_valid():
             cd = search_form.cleaned_data
             
             and_condition = Q(tree=cd['tree'])
             or_conditions = []
-            conditions = [Q(tree=cd['tree'])]
             if cd['name']:
                 or_conditions.append(Q(first_name__icontains=cd['name']))
                 or_conditions.append(Q(last_name__icontains=cd['name']))
             if cd['birth_place']:
                 or_conditions.append(Q(birth_place__icontains=cd['birth_place']))
+            if cd['birth_date']:
+                or_conditions.append(Q(birth_date__icontains=cd['birth_date']))
+            if cd['death_place']:
+                or_conditions.append(Q(death_place__icontains=cd['death_place']))
+            if cd['death_date']:
+                or_conditions.append(Q(death_date__icontains=cd['death_date']))
 
             combined_or_conditions = reduce(lambda x, y: x | y, or_conditions)
 
@@ -109,6 +114,26 @@ def search(request):
             'section': 'search',
             'trees': trees,
             'search_form': search_form
+        }
+    )
+
+@login_required
+def person(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+
+    trees = Tree.objects.filter(user=request.user)
+    if this_person.tree not in trees:
+        raise Http404("Individual not found in any of your trees.")
+
+    return render(
+        request,
+        'genealogy/person.html',
+        {
+            'section': 'search',
+            'person': this_person
         }
     )
 

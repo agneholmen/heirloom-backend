@@ -52,7 +52,8 @@ class Tree(models.Model):
     )
     gedcom_file = models.FileField(
         upload_to=users_file_location,
-        blank=True
+        blank=True,
+        null=True
     )
 
     def __str__(self) -> str:
@@ -76,6 +77,8 @@ class Individual(models.Model):
     death_date = models.CharField(max_length=100, null=True, blank=True)
     death_place = models.CharField(max_length=100, null=True, blank=True)
     death_cause = models.CharField(max_length=100, null=True, blank=True)
+    added = models.DateField(auto_now_add=True)
+    last_updated = models.DateField(auto_now=True)
 
     class Meta:
         constraints = [

@@ -10,4 +10,5 @@ urlpatterns = [
     path('family_tree/', views.family_tree, name='family_tree'),
     path('register/', views.register, name='register'),
     path('edit_profile/', views.edit_profile, name='edit_profile'),
+    path('person/<int:id>', views.person, name='person'),
 ]
