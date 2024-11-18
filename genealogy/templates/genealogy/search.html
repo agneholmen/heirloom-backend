@@ -18,5 +18,6 @@
             <p><a href="{% url 'person' person.id %}">{{ person.first_name }} {{ person.last_name }}</a></p>
         {% endfor %}
         <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
+        <p>New paragraph.</p>
     {% endif %}
 {% endblock content %}
