@@ -22,7 +22,7 @@ class TreeAdmin(admin.ModelAdmin):
 class IndividualAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'indi_id', 'tree', 'first_name', 'last_name', 'sex', 'birth_date',
-        'birth_place', 'death_date', 'death_place', 'death_cause'
+        'birth_place', 'birth_year', 'death_date', 'death_place', 'death_cause', 'death_year'
     ]
     raw_id_fields = ['tree']
 
@@ -34,4 +34,4 @@ class FamilyAdmin(admin.ModelAdmin):
 
 @admin.register(Child)
 class ChildAdmin(admin.ModelAdmin):
-    list_display = ['family', 'indi', 'tree']
+    list_display = ['family', 'indi', 'relation']

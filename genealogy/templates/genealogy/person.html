@@ -20,5 +20,16 @@
     {% if person.death_cause %}
         <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
+    <h2>Parents</h2>
+    <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.first_name }} {{ father.last_name }}</a>{% else %}-{% endif %}</p>
+    <p>Mother: {% if mother %}<a href="{% url 'person' mother.id %}">{{ mother.first_name }} {{ mother.last_name }}</a>{% else %}-{% endif %}</p>
+    <h2>Siblings</h2>
+    {% if siblings %}
+        {% for sibling in siblings %}
+            <p><a href="{% url 'person' sibling.indi.id %}">{{ sibling.indi.first_name }} {{ sibling.indi.last_name }}</a></p>
+        {% endfor %}
+    {% else %}
+        <p>-</p>
+    {% endif %}
 {% endblock content %}
 

@@ -59,6 +59,12 @@ class ProfileEditForm(forms.ModelForm):
 class UploadFileForm(forms.Form):
     file = forms.FileField()
 
+    def clean_file(self):
+        data = self.cleaned_data['file']
+        if not data.name.endswith('.ged'):
+            raise forms.ValidationError('The uploaded file must be a .ged file.')
+        return data
+
 class NewTreeForm(forms.Form):
     name = forms.CharField(
         label="Name",

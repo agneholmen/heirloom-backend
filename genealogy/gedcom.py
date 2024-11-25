@@ -4,6 +4,7 @@ import os
 import re
 
 from genealogy.models import Child, Family, Individual, Tree
+import genealogy.date_functions as df
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 GEDFILE = os.path.join(CURRENT_DIR, 'Danielsson-1.ged')
@@ -31,7 +32,7 @@ NOTE_REGEX = re.compile('([0-9]) NOTE (.*)')
 FAM_REGEX = re.compile('^([0-9]) (@F[0-9]+@) FAM')
 WIFE_REGEX = re.compile('([0-9]) WIFE (@I[0-9]+@)')
 HUSB_REGEX = re.compile('([0-9]) HUSB (@I[0-9]+@)')
-CHIL_REGEX = re.compile('([0-9]) HUSB (@I[0-9]+@)')
+CHIL_REGEX = re.compile('([0-9]) CHIL (@I[0-9]+@)')
 MARR_REGEX = re.compile('([0-9]) MARR')
 
 
@@ -43,8 +44,8 @@ class Ind:
         self.surname = ''
         self.fams = ''
         self.famc = ''
-        self.birth = {'date': '', 'place': ''}
-        self.death = {'date': '', 'place': '', 'cause': ''}
+        self.birth = {'date': '', 'place': '', 'year': None}
+        self.death = {'date': '', 'place': '', 'cause': '', 'year': None}
 
     def get_name(self):
         return f"{self.get_given_name()} {self.get_surname()}"
@@ -167,12 +168,14 @@ class Gedcom:
                 date, place = self.parse_birt(lines, current_index)
                 indi.birth['date'] = date
                 indi.birth['place'] = place
+                indi.birth['year'] = df.extract_year(date)
 
             # DEAT
             if DEAT_REGEX.match(current_line):
                 date, place = self.parse_deat(lines, current_index)
                 indi.death['date'] = date
                 indi.death['place'] = place
+                indi.death['year'] = df.extract_year(date)
 
             # DCAUSE
             if DCAUSE_REGEX.match(current_line):
@@ -407,9 +410,11 @@ def handle_uploaded_file(tree):
         ind.sex = props.sex
         ind.birth_date = props.birth['date']
         ind.birth_place = props.birth['place']
+        ind.birth_year = props.birth['year']
         ind.death_date = props.death['date']
         ind.death_place = props.death['place']
         ind.death_cause = props.death['cause']
+        ind.death_year = props.death['year']
 
         individuals.append(ind)
 
@@ -432,7 +437,6 @@ def handle_uploaded_file(tree):
             child_indi = Individual.objects.get(tree=tree, indi_id=c)
             child.indi = child_indi
             children.append(child)
-            child.tree = tree
 
         families.append(fam)
 

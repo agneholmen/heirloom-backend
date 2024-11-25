@@ -74,9 +74,12 @@ class Individual(models.Model):
     sex = models.CharField(max_length=10, choices=SEX_CHOICES, default="U")
     birth_date = models.CharField(max_length=100, null=True, blank=True)
     birth_place = models.CharField(max_length=100, null=True, blank=True)
+    birth_year = models.PositiveSmallIntegerField(null=True, blank=True)
     death_date = models.CharField(max_length=100, null=True, blank=True)
     death_place = models.CharField(max_length=100, null=True, blank=True)
     death_cause = models.CharField(max_length=100, null=True, blank=True)
+    death_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    alive = models.BooleanField(default=False)
     added = models.DateField(auto_now_add=True)
     last_updated = models.DateField(auto_now=True)
 
@@ -126,23 +129,28 @@ class Family(models.Model):
         verbose_name_plural = "Families"
 
 class Child(models.Model):
+    class Relation(models.TextChoices):
+        ADOPTED = "A", _("Adopted")
+        BIOLOGICAL = "B", ("Biological")
+        FOSTER = 'F', _("Foster")
+        UNKNOWN = 'U', _("Unknown")
+
     family = models.ForeignKey(
         Family,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True                       
     )
     indi = models.ForeignKey(
         Individual,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
-    )
-    tree = models.ForeignKey(
-        Tree, 
         on_delete=models.CASCADE,
         null=True,
         blank=True
+    )
+    relation = models.CharField(
+        choices=Relation,
+        max_length=1,
+        default=Relation.BIOLOGICAL
     )
 
     class Meta:

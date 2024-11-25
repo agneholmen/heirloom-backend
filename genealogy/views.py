@@ -13,6 +13,8 @@ from .forms import (
     UploadFileForm
 )
 from .models import (
+    Child,
+    Family,
     Individual, 
     Profile, 
     Tree
@@ -128,12 +130,26 @@ def person(request, id):
     if this_person.tree not in trees:
         raise Http404("Individual not found in any of your trees.")
 
+    father = None
+    mother = None
+    siblings = None
+    children = Child.objects.filter(indi=this_person)
+    if children:
+        father = children[0].family.husband
+        mother = children[0].family.wife
+
+        siblings = Child.objects.filter(family=children[0].family).exclude(id=children[0].id)
+
+
     return render(
         request,
         'genealogy/person.html',
         {
             'section': 'search',
-            'person': this_person
+            'person': this_person,
+            'father': father,
+            'mother': mother,
+            'siblings': siblings
         }
     )
 
