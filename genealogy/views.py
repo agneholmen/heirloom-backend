@@ -101,6 +101,7 @@ def search(request):
                                 name_or_conditions.append(Q(first_name__icontains=variation))
                                 name_or_conditions.append(Q(last_name__icontains=variation))
                                 found = True
+                            if found:
                                 break
                     if found == False:
                         name_or_conditions.append(Q(first_name__icontains=name))
