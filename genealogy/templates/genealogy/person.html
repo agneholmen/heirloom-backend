@@ -3,8 +3,8 @@
 {% block title %}Person{% endblock title %}
 
 {% block content %}
-    <h1>{{ person.first_name }} {{ person.last_name}}</h1>
-    <p>Name: {{ person.first_name }} {{ person.last_name}}</p>
+    <h1>{{ person }}</h1>
+    <p>Name: {{ person }}</p>
     {% if person.birth_place %}
         <p>Birth Place: {{ person.birth_place }}</p>
     {% endif %}
@@ -21,15 +21,32 @@
         <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
     <h2>Parents</h2>
-    <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.first_name }} {{ father.last_name }}</a>{% else %}-{% endif %}</p>
-    <p>Mother: {% if mother %}<a href="{% url 'person' mother.id %}">{{ mother.first_name }} {{ mother.last_name }}</a>{% else %}-{% endif %}</p>
+    <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.get_name_years }}</a>{% else %}-{% endif %}</p>
+    <p>Mother: {% if mother %}<a href="{% url 'person' mother.id %}">{{ mother.get_name_years }}</a>{% else %}-{% endif %}</p>
     <h2>Siblings</h2>
     {% if siblings %}
+        <ul>
         {% for sibling in siblings %}
-            <p><a href="{% url 'person' sibling.indi.id %}">{{ sibling.indi.first_name }} {{ sibling.indi.last_name }}</a></p>
+            <li><p><a href="{% url 'person' sibling.indi.id %}">{{ sibling.indi.get_name_years }}</a></p></li>
         {% endfor %}
+        </ul>
     {% else %}
-        <p>-</p>
+        <p>No siblings</p>
+    {% endif %}
+    <h2>Families</h2>
+    {% if families %}
+        {% for family in families %}
+            <h3>Family {{forloop.counter }}</h3>
+            <p>Partner: {% if family.partner %}<a href="{% url 'person' family.partner.id %}">{{ family.partner.get_name_years }}</a>{% else %}-{% endif %}</p>
+            {% if family.children %}
+                <p>Children:</p>
+                <ul>
+                {% for child in family.children %}
+                    <li><p><a href="{% url 'person' child.indi.id %}">{{ child.indi.get_name_years }}</a></p></li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endfor %}
     {% endif %}
 {% endblock content %}
 

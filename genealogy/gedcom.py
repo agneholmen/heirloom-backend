@@ -168,14 +168,16 @@ class Gedcom:
                 date, place = self.parse_birt(lines, current_index)
                 indi.birth['date'] = date
                 indi.birth['place'] = place
-                indi.birth['year'] = df.extract_year(date)
+                if date:
+                    indi.birth['year'] = df.extract_year(date)
 
             # DEAT
             if DEAT_REGEX.match(current_line):
                 date, place = self.parse_deat(lines, current_index)
                 indi.death['date'] = date
                 indi.death['place'] = place
-                indi.death['year'] = df.extract_year(date)
+                if date:
+                    indi.death['year'] = df.extract_year(date)
 
             # DCAUSE
             if DCAUSE_REGEX.match(current_line):

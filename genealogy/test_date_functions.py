@@ -15,7 +15,13 @@ def main():
         "NOV 1678",
         "jun 1676",
         "noviembre 1656",
-        "dec 1700"
+        "dec 1700",
+        "16 okt 2015",
+        "31 september 1838",
+        "18 Okt 1979",
+        "1767?",
+        " ",
+        ""
     ]
 
     for example in examples:

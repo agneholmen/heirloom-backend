@@ -88,6 +88,22 @@ class Individual(models.Model):
             models.UniqueConstraint(fields=['tree', 'indi_id'], name='Tree and INDI combination')
         ]
 
+    def get_name_years(self):
+        string = ""
+        if self.first_name:
+            string += self.first_name
+        if self.last_name:
+            string += f" {self.last_name}"
+        if self.birth_year or self.death_year:
+            if self.birth_year and self.death_year:
+                string += f" ({self.birth_year} - {self.death_year})"
+            elif self.birth_year:
+                string += f" ({self.birth_year} - ?)"
+            else:
+                string += f" (? - {self.death_year})"
+
+        return string
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
     

@@ -99,7 +99,19 @@ class SearchForm(forms.Form):
         label="Birth Date",
         max_length=25,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter birth date"})
+        widget=forms.TextInput(attrs={"placeholder": "Enter birth year"})
+    )
+
+    birth_year_start = forms.IntegerField(
+        label="Birth Year Start",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter earliest possible birth year"})
+    )
+
+    birth_year_end = forms.IntegerField(
+        label="Birth Year End",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter latest possible birth year"})
     )
 
     death_place = forms.CharField(
@@ -114,4 +126,16 @@ class SearchForm(forms.Form):
         max_length=25,
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Enter death date"})
+    )
+
+    death_year_start = forms.IntegerField(
+        label="Death Year Start",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter earliest possible death year"})
+    )
+
+    death_year_end = forms.IntegerField(
+        label="Death Year End",
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Enter latest possible death year"})
     )

@@ -3,24 +3,25 @@ from dateutil import parser
 
 # Dictionary for translating month names from other languages to English
 MONTH_TRANSLATIONS = {
-    "januari": "january",
-    "februari": "february",
-    "mars": "march",
-    "april": "april",
-    "maj": "may",
-    "juni": "june",
-    "juli": "july",
-    "augusti": "august",
-    "september": "september",
-    "oktober": "october",
-    "november": "november",
-    "december": "december",
+    "january": ["januari", "jan"],
+    "february": ["februari", "feb"],
+    "march": ["mars", "mar"],
+    "april": ["april", "apr"],
+    "may": ["maj"],
+    "june": ["juni", "jun"],
+    "july": ["juli", "jul"],
+    "august": ["augusti", "aug"],
+    "september": ["september", "sep", "sept"],
+    "october": ["oktober", "okt"],
+    "november": ["november", "nov"],
+    "december": ["december", "dec"]
 }
 
 def translate_months(date_str):
     # Replace non-English month names with English equivalents
-    for non_english, english in MONTH_TRANSLATIONS.items():
-        date_str = re.sub(rf'\b{non_english}\b', english, date_str, flags=re.IGNORECASE)
+    for english, non_english in MONTH_TRANSLATIONS.items():
+        for ne in non_english:
+            date_str = re.sub(rf'\b{ne}\b', english, date_str, flags=re.IGNORECASE)
     return date_str
 
 def extract_year(date_str):
@@ -37,7 +38,8 @@ def extract_year(date_str):
             
             # Attempt to parse the string for additional validation
             # (e.g., if there's enough context for a proper date)
-            parsed_date = parser.parse(date_str, dayfirst=True, fuzzy=True)
+            # Disable for now. It's a good check, but still it doesn't allow for mistakes, for example 31 september
+            #parsed_date = parser.parse(date_str, dayfirst=True, fuzzy=True)
             return int(year)
         
         print(f"No valid year found in string: {date_str}.")

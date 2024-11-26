@@ -15,8 +15,10 @@
     {% if people %}
         <p>Search results:</p>
         {% for person in people %}
-            <p><a href="{% url 'person' person.id %}">{{ person.first_name }} {{ person.last_name }}</a></p>
+            <p><a href="{% url 'person' person.id %}">{{ person.get_name_years }}</a></p>
         {% endfor %}
         <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
+    {% elif people is not None %}
+        <p>No results found.</p>
     {% endif %}
 {% endblock content %}
