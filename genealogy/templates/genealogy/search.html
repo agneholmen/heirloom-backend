@@ -16,7 +16,7 @@
             </p>
         {% endif %}
         <div class="collapse show" id="search-fields">
-            <form method="get">
+            <form method="get" id="search-form">
                 {% crispy search_form %}
             </form>
         </div>
@@ -29,10 +29,17 @@
         <p>Showing page {{ people.number }} of {{ people.paginator.num_pages }}.</p>  
         {% include 'genealogy/search_results_pagination.html' with page=people %}      
         <script>
+            /*
+            If there are search results, hide the search fields by default.
+            */
             window.onload = function() {
                 document.getElementById("search-fields").classList.remove('show');
             };
-
+            
+            /*
+            If search fields are hidden, show "Show search fields", otherwise
+            show "Hide search fields"
+            */
             function toggleText() {
                 var x = document.getElementById("hide-button");
                 if (x.innerHTML === "Show search fields") {
@@ -45,5 +52,17 @@
     {% elif people is not None %}
         <p>No results found.</p>
     {% endif %}
+    <script>
+        /*
+        Code for searching when pressing enter if search form is active. 
+        */
+        var form = document.getElementById("search-form");
+        form.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                form.submit();
+            }
+        });
+    </script>
 {% endblock content %}
 

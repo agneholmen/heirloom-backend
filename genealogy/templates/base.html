@@ -10,7 +10,7 @@
 <body>
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Project Heirloom</a>
+            <a class="navbar-brand" href="{% url "home" %}">Project Heirloom</a>
             {% if request.user.is_authenticated %}
             <ul class="navbar-nav">
                 <li class="nav-item">

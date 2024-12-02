@@ -82,7 +82,7 @@ class SearchForm(forms.Form):
         self.helper = FormHelper(self)
         self.helper.form_method = 'GET'
         self.helper.form_action = reverse_lazy('search')
-        self.helper.add_input(Submit('submit', 'Search'))
+        self.helper.add_input(Submit('search-submit', 'Search', css_id='search-button'))
         self.helper.layout = Layout(
             Row(
                 Column('tree', css_class='col-md-4'),
