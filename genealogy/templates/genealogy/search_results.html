@@ -1,5 +1,4 @@
 <div class="container mt-3">
-    <h3>Search results</h3>
     <table class="table table-hover table-striped">
         <thead>
             <tr>
@@ -15,7 +14,6 @@
             {% endfor %}
         </tbody>
     </table>
-    <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
     <div id="modal" class="modal modal-blur fade" tab-index="-1">
         <div id="dialog" class="modal-dialog modal-dialog-centered">
             <div id="modal-content" class="modal-content" hx-target="this">

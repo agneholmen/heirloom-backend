@@ -10,13 +10,38 @@
     {% if not trees %}
         <p>You currently have no uploaded trees.</p>
     {% else %}
-        <form method="get">
-            {% crispy search_form %}
-        </form>
+        {% if people %}
+            <p>
+                <button onClick="toggleText()" class="btn btn-primary" type="button" id="hide-button" data-bs-toggle="collapse" data-bs-target="#search-fields" aria-controls="search-fields" aria-expanded="true">Show search fields</button>
+            </p>
+        {% endif %}
+        <div class="collapse show" id="search-fields">
+            <form method="get">
+                {% crispy search_form %}
+            </form>
+        </div>
     {% endif %}
-    <div hx-get="{% url 'get_time' %}" id="time_test" hx-target="this" hx-swap="innerHTML" hx-trigger="test"></div>
     {% if people %}
+        <h3>Search results</h3>
+        {% include 'genealogy/search_results_pagination.html' with page=people %}
         {% include 'genealogy/search_results.html' %}
+        <p>Found {{ people.paginator.count }} results in total.</p>
+        <p>Showing page {{ people.number }} of {{ people.paginator.num_pages }}.</p>  
+        {% include 'genealogy/search_results_pagination.html' with page=people %}      
+        <script>
+            window.onload = function() {
+                document.getElementById("search-fields").classList.remove('show');
+            };
+
+            function toggleText() {
+                var x = document.getElementById("hide-button");
+                if (x.innerHTML === "Show search fields") {
+                    x.innerHTML = "Hide search fields";
+                } else {
+                    x.innerHTML = "Show search fields";
+                }
+            }
+        </script>
     {% elif people is not None %}
         <p>No results found.</p>
     {% endif %}

@@ -1,0 +1,27 @@
+<nav>
+    <ul class="pagination">
+        {% if page.has_previous %}
+            <li class="page-item"><a href="?page=1{{ search_query }}" class="page-link">First</a></li>
+            <li class="page-item"><a href="?page={{ page.previous_page_number }}{{ search_query }}" class="page-link">Previous</a></li>
+            {% if page.previous_page_number > 1 %}
+                <li class="page-item"><a href="?page={{ page.previous_page_number|add:"-1" }}{{ search_query }}" class="page-link">{{ page.previous_page_number|add:"-1" }}</a></li>
+            {% endif %}
+            <li class="page-item"><a href="?page={{ page.previous_page_number }}{{ search_query }}" class="page-link">{{ page.previous_page_number }}</a></li>
+        {% else %}
+            <li class="page-item disabled"><a class="page-link">First</a></li>
+            <li class="page-item disabled"><a class="page-link">Previous</a></li>
+        {% endif %}
+        <li class="page-item active"><a href="#" class="page-link">{{ page.number }}</a></li>
+        {% if page.has_next %}
+            <li class="page-item"><a href="?page={{ page.next_page_number }}{{ search_query }}" class="page-link">{{ page.next_page_number }}</a></li>
+            {% if page.next_page_number < page.paginator.num_pages %}
+                <li class="page-item"><a href="?page={{ page.next_page_number|add:"1" }}{{ search_query }}" class="page-link">{{ page.next_page_number|add:"1" }}</a></li>
+            {% endif %}
+            <li class="page-item"><a href="?page={{ page.next_page_number }}{{ search_query }}" class="page-link">Next</a></li>
+            <li class="page-item"><a href="?page={{ page.paginator.num_pages }}{{ search_query }}" class="page-link">Last</a></li>
+        {% else %}
+            <li class="page-item disabled"><a class="page-link">Next</a></li>
+            <li class="page-item disabled"><a class="page-link">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>

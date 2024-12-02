@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Q
 from django.http import HttpResponse, Http404
 from django.shortcuts import render
@@ -89,6 +90,7 @@ def search(request):
     trees = Tree.objects.filter(user=request.user)
 
     if request.method == 'GET' and request.GET:
+        query = ''
         search_form = SearchForm(request.GET)
         search_form.fields["tree"].queryset = trees
         if search_form.is_valid():
@@ -97,7 +99,11 @@ def search(request):
             and_conditions = []
             or_conditions = []
             name_conditions = []
+
+            query += f"&tree={cd['tree'].id}"
+            query += f"&results_per_page={cd['results_per_page']}"
             if cd['name']:
+                query += f"&name={cd['name']}"
                 name_strings = cd['name'].split()
                 for name in name_strings:
                     name_or_conditions = []
@@ -121,20 +127,28 @@ def search(request):
                         name_conditions = name_or_conditions
 
             if cd['birth_place']:
+                query += f"&birth_place={cd['birth_place']}"
                 and_conditions.append(Q(birth_place__icontains=cd['birth_place']))
             if cd['birth_date']:
+                query += f"&birth_date={cd['birth_date']}"
                 and_conditions.append(Q(birth_date__icontains=cd['birth_date']))
             if cd['birth_year_start']:
+                query += f"&birth_year_start={cd['birth_year_start']}"
                 and_conditions.append(Q(birth_year__gte=cd['birth_year_start']))
             if cd['birth_year_end']:
+                query += f"&birth_year_end{cd['birth_year_end']}"
                 and_conditions.append(Q(birth_year__lte=cd['birth_year_end']))
             if cd['death_place']:
+                query += f"&death_place={cd['death_place']}"
                 and_conditions.append(Q(death_place__icontains=cd['death_place']))
             if cd['death_date']:
+                query += f"&death_date={cd['death_date']}"
                 and_conditions.append(Q(death_date__icontains=cd['death_date']))
             if cd['death_year_start']:
+                query += f"&death_year_start={cd['death_year_start']}"
                 and_conditions.append(Q(death_year__gte=cd['death_year_start']))
             if cd['death_year_end']:
+                query += f"&death_year_end={cd['death_year_end']}"
                 and_conditions.append(Q(death_year__lte=cd['death_year_end']))
 
             final_query = Q(tree=cd['tree'])
@@ -147,7 +161,14 @@ def search(request):
             if name_conditions:
                 final_query = final_query & name_conditions
 
+            results_per_page = cd['results_per_page']
             people = Individual.objects.filter(final_query)
+            paginator = Paginator(people, results_per_page)
+            page_number = request.GET.get('page', 1)
+            try:
+                people = paginator.page(page_number)
+            except EmptyPage:
+                people = paginator.page(paginator.num_pages)
 
             return render(
                 request,
@@ -156,7 +177,8 @@ def search(request):
                     'section': 'search',
                     'trees': trees,
                     'search_form': search_form,
-                    'people': people
+                    'people': people,
+                    'search_query': query
                 }
             )
             
@@ -352,8 +374,3 @@ def update_result_row(request, id):
         'genealogy/search_result_row.html',
         {'person': this_person}
     )
-
-def get_time(request):
-    import datetime
-    current_time = datetime.datetime.now().time()
-    return HttpResponse(f'<p>{current_time}</p>')

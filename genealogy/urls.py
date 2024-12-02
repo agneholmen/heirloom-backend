@@ -13,5 +13,4 @@ urlpatterns = [
     path('person/<int:id>', views.person, name='person'),
     path('edit_person/<int:id>', views.edit_person, name='edit_person'),
     path('update_result_row/<int:id>', views.update_result_row, name='update_result_row'),
-    path('get_time', views.get_time, name='get_time'),
 ]

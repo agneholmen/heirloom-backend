@@ -84,7 +84,10 @@ class SearchForm(forms.Form):
         self.helper.form_action = reverse_lazy('search')
         self.helper.add_input(Submit('submit', 'Search'))
         self.helper.layout = Layout(
-            Row('tree', css_class='col-4'),
+            Row(
+                Column('tree', css_class='col-md-4'),
+                Column('results_per_page', css_class='col-md-4')
+            ),
             Row(
                 Column('name', css_class='col-md-4'),
                 Column('birth_place', css_class='col-md-4'),
@@ -108,6 +111,13 @@ class SearchForm(forms.Form):
         blank=False,
         label="Select Tree",
         empty_label=None
+    )
+
+    results_per_page = forms.ChoiceField(
+        choices=((25, 25), (50, 50), (100, 100)),
+        required=True,
+        label="Number of search results per page",
+        initial=25
     )
 
     name = forms.CharField(

@@ -87,6 +87,7 @@ class Individual(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['tree', 'indi_id'], name='Tree and INDI combination')
         ]
+        ordering = ['last_name']
 
     def get_name_years(self):
         string = ""
