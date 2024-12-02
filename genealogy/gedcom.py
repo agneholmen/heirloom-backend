@@ -44,8 +44,8 @@ class Ind:
         self.surname = ''
         self.fams = ''
         self.famc = ''
-        self.birth = {'date': '', 'place': '', 'year': None}
-        self.death = {'date': '', 'place': '', 'cause': '', 'year': None}
+        self.birth = {'date': None, 'place': None, 'year': None}
+        self.death = {'date': None, 'place': None, 'cause': '', 'year': None}
 
     def get_name(self):
         return f"{self.get_given_name()} {self.get_surname()}"
@@ -97,7 +97,7 @@ class FamilyGC:
         self.husband = ''
         self.wife = ''
         self.children = []
-        self.marriage = {'date': '', 'place': ''}
+        self.marriage = {'date': None, 'place': None}
 
 
 class Gedcom:
@@ -214,8 +214,8 @@ class Gedcom:
         matches = BIRT_REGEX.match(lines[start_index])
         level = matches.group(1)
 
-        date = ''
-        place = ''
+        date = None
+        place = None
 
         for index, line in enumerate(lines[start_index + 1:]):
             current_line = line.strip()
@@ -234,8 +234,8 @@ class Gedcom:
         matches = DEAT_REGEX.match(lines[start_index])
         level = matches.group(1)
 
-        date = ''
-        place = ''
+        date = None
+        place = None
 
         for index, line in enumerate(lines[start_index + 1:]):
             current_line = line.strip()
@@ -300,8 +300,8 @@ class Gedcom:
         matches = MARR_REGEX.match(lines[start_index])
         level = matches.group(1)
 
-        date = ''
-        place = ''
+        date = None
+        place = None
 
         for index, line in enumerate(lines[start_index + 1:]):
             current_line = line.strip()

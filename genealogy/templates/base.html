@@ -1,44 +1,48 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{% static "css/base.css" %}">
+    {% load static %}
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
 </head>
 <body>
-    <div id="header">
-        <span class="logo">Project Heirloom</span>
-        {% if request.user.is_authenticated %}
-            <ul class="menu">
-                <li {% if section == "home" %}class="selected"{% endif %}>
-                    <a href="{% url "home" %}">Home</a>
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Project Heirloom</a>
+            {% if request.user.is_authenticated %}
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a href="{% url "home" %}" class="nav-link {% if section == "home" %}active{% endif %}">Home</a>
                 </li>
-                <li {% if section == "family_tree" %}class="selected"{% endif %}>
-                    <a href="{% url "family_tree" %}">Family Tree</a>
+                <li class="nav-item">
+                    <a href="{% url "family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Tree</a>
                 </li>
-                <li {% if section == "search" %}class="selected"{% endif %}>
-                    <a href="{% url "search" %}">Search</a>
+                <li class="nav-item">
+                    <a href="{% url "search" %}" class="nav-link {% if section == "search" %}active{% endif %}">Search</a>
                 </li>
-                <li {% if section == "images" %}class="selected"{% endif %}>
-                    <a href="{% url "images" %}">Images</a>
+                <li class="nav-item">
+                    <a href="{% url "images" %}" class="nav-link {% if section == "images" %}active{% endif %}">Images</a>
                 </li>
-                <li {% if section == "edit_profile" %}class="selected"{% endif %}>
-                    <a href="{% url "edit_profile" %}">Profile</a>
+                <li class="nav-item">
+                    <a href="{% url "edit_profile" %}" class="nav-link {% if section == "edit_profile" %}active{% endif %}">Profile</a>
                 </li>
             </ul>
-        {% endif %}
-        <span class="user">
+            {% endif %}
             {% if request.user.is_authenticated %}
-                Hello {{ request.user.first_name|default:request.user.username}},
-                <form action="{% url "logout" %}" method="post">
-                    <button type="submit">Log out</button>
+                <form action="{% url "logout" %}" method="post" class="d-flex">
+                    <button type="submit" class="btn btn-primary">Log out</button>
                     {% csrf_token %}
                 </form>
             {% else %}
-                <a href="{% url "login" %}">Log in</a>
+                <form action="{% url "login" %}" method="post" class="d-flex">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Log in</button>
+                </form>
             {% endif %}
-        </span>
-    </div>
+        </div>
+    </nav>
     {% if messages %}
         <ul class="messages">
             {% for message in messages %}
@@ -50,8 +54,11 @@
         </ul>
     {% endif %}
     <div id="content">
-        {% block content %}
-        {% endblock %}
+        <div class="container mt-5">
+            {% block content %}
+            {% endblock %}
+        </div>
     </div>
+    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
 </body>
 </html>

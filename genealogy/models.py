@@ -13,11 +13,11 @@ def users_file_location(instance, filename):
 
 
 class Profile(models.Model):
-    class Sex(models.TextChoices):
-        MALE = "M", _("Male")
-        FEMALE = 'F', _("Female")
-        UNKNOWN = 'U', _("Unknown")
-
+    SEX_CHOICES = (
+        ("M", "Male"),
+        ("F", "Female"),
+        ("U", "Unknown"),
+    )
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -31,8 +31,8 @@ class Profile(models.Model):
     description = models.TextField(blank=True, null=True)
     sex = models.CharField(
         max_length=1,
-        choices=Sex,
-        default=Sex.UNKNOWN
+        choices=SEX_CHOICES,
+        default="U"
     )
 
     def __str__(self) -> str:
@@ -62,8 +62,8 @@ class Tree(models.Model):
 
 class Individual(models.Model):
     SEX_CHOICES = (
-        ("M", "Man"),
-        ("F", "Kvinna"),
+        ("M", "Male"),
+        ("F", "Female"),
         ("U", "Unknown"),
     )
 
@@ -98,9 +98,9 @@ class Individual(models.Model):
             if self.birth_year and self.death_year:
                 string += f" ({self.birth_year} - {self.death_year})"
             elif self.birth_year:
-                string += f" ({self.birth_year} - ?)"
+                string += f" ({self.birth_year} - )"
             else:
-                string += f" (? - {self.death_year})"
+                string += f" ( - {self.death_year})"
 
         return string
 
@@ -145,11 +145,12 @@ class Family(models.Model):
         verbose_name_plural = "Families"
 
 class Child(models.Model):
-    class Relation(models.TextChoices):
-        ADOPTED = "A", _("Adopted")
-        BIOLOGICAL = "B", ("Biological")
-        FOSTER = 'F', _("Foster")
-        UNKNOWN = 'U', _("Unknown")
+    RELATIONS = (
+        ("A", "Adopted"),
+        ("B", "Biological"),
+        ("F", "Foster"),
+        ("U", "Unknown"),
+    )
 
     family = models.ForeignKey(
         Family,
@@ -164,9 +165,9 @@ class Child(models.Model):
         blank=True
     )
     relation = models.CharField(
-        choices=Relation,
+        choices=RELATIONS,
         max_length=1,
-        default=Relation.BIOLOGICAL
+        default="B"
     )
 
     class Meta:

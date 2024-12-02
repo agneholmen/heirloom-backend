@@ -1,7 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from .models import Profile, Tree
+from django.urls import reverse_lazy
+from .models import Individual, Profile, Tree
+
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
 
 
 class LoginForm(forms.Form):
@@ -73,6 +77,31 @@ class NewTreeForm(forms.Form):
 
 
 class SearchForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'GET'
+        self.helper.form_action = reverse_lazy('search')
+        self.helper.add_input(Submit('submit', 'Search'))
+        self.helper.layout = Layout(
+            Row('tree', css_class='col-4'),
+            Row(
+                Column('name', css_class='col-md-4'),
+                Column('birth_place', css_class='col-md-4'),
+                Column('death_place', css_class='col-md-4')
+            ),
+            Row(
+                Column('birth_date', css_class='col-md-4'),
+                Column('birth_year_start', css_class='col-md-4'),
+                Column('birth_year_end', css_class='col-md-4')
+            ),
+            Row(
+                Column('death_date', css_class='col-md-4'),
+                Column('death_year_start', css_class='col-md-4'),
+                Column('death_year_end', css_class='col-md-4')
+            )
+        )
+
     tree = forms.ModelChoiceField(
         queryset=Tree.objects.none(),  # Set initial queryset as empty
         required=True,
@@ -85,57 +114,79 @@ class SearchForm(forms.Form):
         label="Name",
         max_length=100,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter name"})
+        widget=forms.TextInput(attrs={"placeholder": "Name"})
     )
 
     birth_place = forms.CharField(
         label="Birth Place",
         max_length=200,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter birth place"})
+        widget=forms.TextInput(attrs={"placeholder": "Birth place"})
     )
 
     birth_date = forms.CharField(
         label="Birth Date",
         max_length=25,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter birth year"})
+        widget=forms.TextInput(attrs={"placeholder": "Birth date"})
     )
 
     birth_year_start = forms.IntegerField(
         label="Birth Year Start",
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter earliest possible birth year"})
+        widget=forms.TextInput(attrs={"placeholder": "Earliest possible birth year"})
     )
 
     birth_year_end = forms.IntegerField(
         label="Birth Year End",
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter latest possible birth year"})
+        widget=forms.TextInput(attrs={"placeholder": "Latest possible birth year"})
     )
 
     death_place = forms.CharField(
         label="Death Place",
         max_length=200,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter death place"})
+        widget=forms.TextInput(attrs={"placeholder": "Death place"})
     )
 
     death_date = forms.CharField(
         label="Death Date",
         max_length=25,
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter death date"})
+        widget=forms.TextInput(attrs={"placeholder": "Death date"})
     )
 
     death_year_start = forms.IntegerField(
         label="Death Year Start",
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter earliest possible death year"})
+        widget=forms.TextInput(attrs={"placeholder": "Earliest possible death year"})
     )
 
     death_year_end = forms.IntegerField(
         label="Death Year End",
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Enter latest possible death year"})
+        widget=forms.TextInput(attrs={"placeholder": "Latest possible death year"})
     )
+
+class EditPersonForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('first_name', css_class="form-outline mb4"),
+            Row('last_name', css_class="form-outline mb4"),
+            Row('birth_date', css_class="form-outline mb4"),
+            Row('death_date', css_class="form-outline mb4"),
+            Row(
+                Column(Submit('submit', 'Save Changes', css_class="btn btn-primary", data_bs_dismiss="modal")),
+                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
+                css_class="form-outline mb4"
+            )
+        )
+
+    class Meta:
+        model = Individual
+        fields = ['first_name', 'last_name', 'birth_date', 'death_date']

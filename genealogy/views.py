@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.http import HttpResponse, Http404
 from django.shortcuts import render
 from .forms import (
+    EditPersonForm,
     LoginForm, 
     UserRegistrationForm,
     UserEditForm,
@@ -22,6 +23,8 @@ from .models import (
 
 from . import gedcom
 
+from django_htmx.http import trigger_client_event
+
 from functools import reduce
 
 NAMES_REPLACE = [
@@ -34,7 +37,11 @@ NAMES_REPLACE = [
     ["Per", "Pär", "Pehr", "Pähr"],
     ["Kajsa", "Cajsa", "Caisa"],
     ["Kristina", "Christina"],
-    ["Katharina", "Katarina", "Catharina"]
+    ["Katharina", "Katarina", "Catharina"],
+    ["Sofia", "Sophia"],
+    ["Ulrika", "Ulrica"],
+    ["Fredrik", "Fredric"],
+    ["Erik", "Eric"]
 ]
 
 @login_required
@@ -220,6 +227,36 @@ def person(request, id):
         }
     )
 
+@login_required
+def edit_person(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == 'POST':
+        form = EditPersonForm(request.POST, instance=this_person)
+        if form.is_valid():
+            form.save()
+            response = HttpResponse(status=204)
+            response.headers = {'HX-Trigger': f'update-person-{str(id)}'}
+            return response
+        else:
+            return render(
+                request, 
+                'genealogy/edit_person.html',
+                {'form': form},
+                status=400
+                )
+    else:
+        form = EditPersonForm(instance=this_person)
+
+    return render(
+        request, 
+        'genealogy/edit_person.html',
+        {'form': form}
+        )
+
 def user_login(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)
@@ -302,3 +339,21 @@ def edit_profile(request):
             'section': 'edit_profile'
         }
     )
+
+@login_required
+def update_result_row(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    return render(
+        request,
+        'genealogy/search_result_row.html',
+        {'person': this_person}
+    )
+
+def get_time(request):
+    import datetime
+    current_time = datetime.datetime.now().time()
+    return HttpResponse(f'<p>{current_time}</p>')

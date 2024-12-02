@@ -25,6 +25,7 @@ class IndividualAdmin(admin.ModelAdmin):
         'birth_place', 'birth_year', 'death_date', 'death_place', 'death_cause', 'death_year'
     ]
     raw_id_fields = ['tree']
+    list_filter = ['last_name']
 
 @admin.register(Family)
 class FamilyAdmin(admin.ModelAdmin):

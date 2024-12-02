@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% load crispy_forms_tags %}
+{% load static %}
+
 {% block title %}Search{% endblock title %}
 
 {% block content %}
@@ -8,17 +11,14 @@
         <p>You currently have no uploaded trees.</p>
     {% else %}
         <form method="get">
-            {{ search_form.as_p }}
-            <button type="submit">Search</button>
+            {% crispy search_form %}
         </form>
     {% endif %}
+    <div hx-get="{% url 'get_time' %}" id="time_test" hx-target="this" hx-swap="innerHTML" hx-trigger="test"></div>
     {% if people %}
-        <p>Search results:</p>
-        {% for person in people %}
-            <p><a href="{% url 'person' person.id %}">{{ person.get_name_years }}</a></p>
-        {% endfor %}
-        <p>Found {{ people|length }} result{{ people|pluralize }}.</p>
+        {% include 'genealogy/search_results.html' %}
     {% elif people is not None %}
         <p>No results found.</p>
     {% endif %}
 {% endblock content %}
+

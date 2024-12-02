@@ -1,0 +1,10 @@
+{% load crispy_forms_tags %}
+
+<div class="modal-header">
+    <h5 class="modal-title">Edit Person</h5>
+</div>
+<div class="modal-body">
+    <form hx-post="{{ request.path }}" class="modal-form">
+        {% crispy form %}
+    </form>
+</div>

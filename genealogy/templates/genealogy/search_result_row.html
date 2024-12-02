@@ -1,0 +1,10 @@
+                <tr hx-get="{% url 'update_result_row' person.id %}" id="person-{{ person.id }}" hx-trigger="update-person-{{ person.id }} from:body" hx-swap="outerHTML" target="this">
+                    <td><a href="{% url 'person' person.id %}">{{ person }}</a></td>
+                    <td>{{ person.birth_date|default_if_none:"" }}</td>
+                    <td>{{ person.death_date|default_if_none:"" }}</td>
+                    <td>
+                        <button hx-get="{% url 'edit_person' person.id %}" class="btn btn-primary" 
+                            hx-target="#modal-content" type="button" hx-trigger="click" 
+                            data-bs-toggle="modal" data-bs-target="#modal" hx-swap="innerHTML">Edit</button>
+                    </td>
+                </tr>
