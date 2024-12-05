@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from datetime import date
 
+from .date_functions import extract_year
 
 def users_file_location(instance, filename):
     date_string = date.today().strftime("%Y/%m/%d")
@@ -120,6 +121,14 @@ class Individual(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def save(self, *args, **kwargs):
+        if self.birth_date:
+            self.birth_year = extract_year(self.birth_date)
+        if self.death_date:
+            self.death_year = extract_year(self.death_date)
+
+        super().save(*args, **kwargs)
     
 
 class Family(models.Model):
