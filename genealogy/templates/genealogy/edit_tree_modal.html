@@ -1,0 +1,15 @@
+{% load crispy_forms_tags %}
+{% load static %}
+
+<div class="modal-header">
+    <h5 class="modal-title" id="edit-tree-modal-label">Edit Tree Properties</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div id="error-messages"></div>
+    <form hx-post="{% url 'edit_tree' tree.id %}" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleEditTreeRequest(event)">
+        {% csrf_token %}
+        {% crispy form %}
+    </form>
+</div>
+<script src="{% static 'js/edit_tree_modal.js' %}"></script>

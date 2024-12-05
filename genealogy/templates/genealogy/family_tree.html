@@ -1,18 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}Family Tree{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block title %}Family Trees{% endblock title %}
 
 {% block content %}
-    <h1>Family Tree</h1>
-    {% if trees %}
-        <p>You currently have {{ trees|length }} tree{{ trees|pluralize }} uploaded.</p>
-    {% else %}
-        <p>You currently have no uploaded trees.</p>
-    {% endif %}
-    <p>Upload a GEDCOM using the following form:</p>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ upload_form.as_p }}
-        <button type="submit">Upload</button>
-    </form>
+    <h1>Family Trees</h1>
+    <div id="new-tree-container">
+        <h4>Create New Tree</h3>
+        <form method="post" enctype="multipart/form-data">
+            {% crispy upload_form %}
+        </form>
+    </div>
+    <div id="current-trees-container">
+        <h4>Current Trees</h4>
+        {% if trees %}
+            {% include 'genealogy/tree_list.html' %}
+        {% else %}
+            <p>You currently have no uploaded trees.</p>
+        {% endif %}
+    </div>
+    <div class="modal fade modal-blur" tabindex="-1" id="delete-tree-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" id="delete-tree-modal-content" hx-target="this">
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-blur" tabindex="-1" id="edit-tree-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" id="edit-tree-modal-content" hx-target="this">
+            </div>
+        </div>
+    </div>
 {% endblock content %}

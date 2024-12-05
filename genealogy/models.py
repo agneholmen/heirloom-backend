@@ -50,15 +50,28 @@ class Tree(models.Model):
         null=True,
         max_length=100
     )
+    description = models.CharField(
+        blank=True,
+        null=True,
+        max_length=200
+    )
     gedcom_file = models.FileField(
         upload_to=users_file_location,
         blank=True,
         null=True
     )
 
+    def clean(self):
+        if Tree.objects.filter(user=self.user, name=self.name).exclude(id=self.id).exists():
+            raise ValidationError({'name': 'A tree with that name already exists.'})
+
     def __str__(self) -> str:
         return self.name
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'name'], name='User and name combination')
+        ]
 
 class Individual(models.Model):
     SEX_CHOICES = (
@@ -68,7 +81,7 @@ class Individual(models.Model):
     )
 
     indi_id = models.CharField(max_length=20, null=True, blank=True)
-    tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
+    tree = models.ForeignKey(Tree, on_delete=models.CASCADE, related_name="individuals")
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=100, null=True, blank=True)
     sex = models.CharField(max_length=10, choices=SEX_CHOICES, default="U")
@@ -181,5 +194,6 @@ class Child(models.Model):
 @receiver(post_delete, sender=Tree)
 def tree_post_delete_handler(sender, **kwargs):
     tree = kwargs['instance']
-    storage, path = tree.gedcom_file.storage, tree.gedcom_file.path
-    storage.delete(path)
+    if hasattr(tree, 'gedcome_file'):
+        storage, path = tree.gedcom_file.storage, tree.gedcom_file.path
+        storage.delete(path)

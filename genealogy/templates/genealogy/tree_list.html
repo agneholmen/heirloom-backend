@@ -1,0 +1,17 @@
+<div class="container mt-3" hx-trigger="tree-list-changed from:body" hx-get="{% url 'get_tree_list' %}" hx-target="this">
+    <p>You currently have {{ trees|length }} tree{{ trees|pluralize }} uploaded.</p>
+    <table class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Number of people</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% include 'genealogy/tree_list_rows.html' %}
+        </tbody>
+    </table>
+</div>

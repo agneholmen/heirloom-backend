@@ -2,17 +2,18 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Q
-from django.http import HttpResponse, Http404
-from django.shortcuts import render
+from django.db.models import Count, Q
+from django.http import HttpResponse, Http404, JsonResponse
+from django.shortcuts import render, redirect
 from .forms import (
     EditPersonForm,
-    LoginForm, 
+    EditTreeForm,
+    LoginForm,
+    NewTreeForm,
     UserRegistrationForm,
     UserEditForm,
     ProfileEditForm,
-    SearchForm,
-    UploadFileForm
+    SearchForm
 )
 from .models import (
     Child,
@@ -56,16 +57,34 @@ def home(request):
 @login_required
 def family_tree(request):
     if request.method == "POST":
-        form = UploadFileForm(request.POST, request.FILES)
+        form = NewTreeForm(request.POST, request.FILES)
         if form.is_valid():
-            new_tree = Tree(user=request.user, gedcom_file=request.FILES["file"])
-            new_tree.save()
-            gedcom.handle_uploaded_file(new_tree)
+            cd = form.cleaned_data
+            if Tree.objects.filter(Q(name=cd['name']) & Q(user=request.user)).count() > 0:
+                messages.error(request, 'A tree with that name already exists!')
+            else:
+                new_tree = Tree(user=request.user)
+                if request.FILES:
+                    new_tree.gedcom_file = request.FILES["file"]
+
+                new_tree.name = cd['name']
+                new_tree.description = cd['description']
+                new_tree.save()
+
+                # If a GEDCOM file was uploaded, add all Individual, Family, and Child to DB
+                if new_tree.gedcom_file:
+                    gedcom.handle_uploaded_file(new_tree)
+
+                messages.success(request, 'New tree added successfully!')
+
+                # We don't want to save the properties in the form if new tree is added
+                form = NewTreeForm()
 
     else:
-        form = UploadFileForm()
+        form = NewTreeForm()
 
     trees = Tree.objects.filter(user=request.user)
+    trees = trees.annotate(number_of_individuals=Count("individuals"))
 
     return render(
         request,
@@ -277,7 +296,76 @@ def edit_person(request, id):
         request, 
         'genealogy/edit_person.html',
         {'form': form}
-        )
+    )
+
+@login_required
+def delete_tree(request, id):
+    try:
+        this_tree = Tree.objects.get(id=id)
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+    
+    if request.method == "POST":
+        this_tree.delete()
+        if request.headers.get('HX-Request') == 'true':
+            return HttpResponse(status=204, headers={'HX-Trigger': 'tree-list-changed'})
+        return redirect('family_tree')
+
+@login_required
+def delete_tree_modal(request, id):
+    try:
+        this_tree = Tree.objects.get(id=id)
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+
+    return render(request, 'genealogy/delete_tree_modal.html', {'tree': this_tree})
+
+@login_required
+def edit_tree(request, id):
+    try:
+        this_tree = Tree.objects.get(id=id)
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+
+    if request.method == 'POST':
+        form = EditTreeForm(request.POST, instance=this_tree)
+        if form.is_valid():
+            form.save()
+            response = HttpResponse(status=204, headers={'HX-Trigger': 'tree-list-changed'})
+            return response
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response
+    else:
+        form = EditTreeForm(instance=this_tree)
+
+    return render(
+        request, 
+        'genealogy/edit_tree_modal.html',
+        {'tree': this_tree, 'form': form}
+    )
+
+@login_required
+def edit_tree_modal(request, id):
+    try:
+        this_tree = Tree.objects.get(id=id)
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+    
+    form = EditTreeForm(instance=this_tree)
+    
+    return render(request, 'genealogy/edit_tree_modal.html', {'tree': this_tree, 'form': form})
+
+@login_required
+def get_tree_list(request):
+    trees = Tree.objects.filter(user=request.user)
+    trees = trees.annotate(number_of_individuals=Count("individuals"))
+
+    return render(request, 'genealogy/tree_list.html', {'trees': trees})
+
+@login_required
+def view_tree(request, id):
+    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree'})
 
 def user_login(request):
     if request.method == 'POST':
@@ -363,7 +451,7 @@ def edit_profile(request):
     )
 
 @login_required
-def update_result_row(request, id):
+def update_search_result_row(request, id):
     try:
         this_person = Individual.objects.get(id=id)
     except Individual.DoesNotExist:

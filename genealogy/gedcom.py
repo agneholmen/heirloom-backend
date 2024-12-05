@@ -395,7 +395,6 @@ def clear_db():
 
 def handle_uploaded_file(tree):
     gedcom_tree = Gedcom(tree.gedcom_file.path)
-    tree.name = gedcom_tree.name
     tree.save()
 
     # List of Individual entries to bulk add to DB

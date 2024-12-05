@@ -60,21 +60,65 @@ class ProfileEditForm(forms.ModelForm):
         model = Profile
         fields = ['date_of_birth', 'photo', 'description', 'sex']
 
-class UploadFileForm(forms.Form):
-    file = forms.FileField()
+class NewTreeForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_action = reverse_lazy('family_tree')
+        self.helper.add_input(Submit('upload-submit', 'Create Tree', css_id='upload-button'))
+        self.helper.layout = Layout(
+            Row(
+                Column('file', css_class='col-md-4'),
+                Column('name', css_class='col-md-4')
+            ),
+            Row(
+                Column('description', css_class='col-md-8')
+            )
+        )
+
+    file = forms.FileField(
+        required=False,
+        label="GEDCOM file"
+    )
+    name = forms.CharField(
+        required=True,
+        max_length=100,
+        widget=forms.TextInput(attrs={"placeholder": "Name of the tree"})
+    )
+    description = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"placeholder": "Enter a short description"})
+    )
 
     def clean_file(self):
+        if not self.cleaned_data['file']:
+            return None
         data = self.cleaned_data['file']
         if not data.name.endswith('.ged'):
             raise forms.ValidationError('The uploaded file must be a .ged file.')
         return data
 
-class NewTreeForm(forms.Form):
-    name = forms.CharField(
-        label="Name",
-        required=True
-    )
+class EditTreeForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = "POST"
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('name', css_class="form-outline mb12"),
+            Row('description', css_class="form-outline mb12"),
+            Row(
+                Column(Submit('edit-submit', 'Save', css_id='edit-button', css_class='btn btn-primary')),
+                Column(Button('cancel-edit', 'Cancel', css_class='btn btn-secondary'), data_bs_dismiss="modal"),
+                css_class='form-outline mb12'
+            )
+        )
 
+    class Meta:
+        model = Tree
+        fields = ['name', 'description']
 
 class SearchForm(forms.Form):
     def __init__(self, *args, **kwargs):

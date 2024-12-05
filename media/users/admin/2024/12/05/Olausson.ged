@@ -1,0 +1,460 @@
+0 HEAD
+1 SUBM @SUBM1@
+1 SOUR Ancestry.com Family Trees
+2 NAME Ancestry.com Member Trees
+2 VERS 2022.08
+2 _TREE Olausson
+3 RIN 193315144
+3 _ENV prd
+2 CORP Ancestry.com
+3 PHON 801-705-7000
+3 WWW www.ancestry.com
+3 ADDR 1300 West Traverse Parkway
+4 CONT Lehi, UT  84043
+4 CONT USA
+1 DATE 17 Oct 2023
+2 TIME 16:15:56
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+0 @SUBM1@ SUBM
+1 NAME Ancestry.com Member Trees Submitter
+0 @I282520313874@ INDI
+1 NAME Gustaf Algot /Olausson/
+2 GIVN Gustaf Algot
+2 SURN Olausson
+1 SEX M
+1 FAMC @F11@
+1 BIRT
+2 DATE 19 juni 1906
+2 PLAC Borrås Augmentsgården, Magra, Västra Götaland, Sverige
+1 DEAT
+2 DATE 22 oktober 1971
+2 PLAC Erska, Västra Götaland, Sverige
+0 @I282520313875@ INDI
+1 NAME Karl Johan /Olausson/
+2 GIVN Karl Johan
+2 SURN Olausson
+1 SEX M
+1 FAMC @F10@
+1 FAMS @F11@
+1 BIRT
+2 DATE 24 augusti 1873
+2 PLAC Borrås, Magra, Västra Götaland, Sverige
+1 EVEN
+2 TYPE Brott
+2 DATE 16 juli 1898
+2 PLAC Bjärke, Västra Götaland, Sverige
+2 NOTE Dömd av Bjärke häradsrätt för missfirmelse till 10 kr i böter.
+1 EMIG
+2 DATE 25 april 1900
+2 PLAC Amerika
+1 RESI
+2 DATE 25 juni 1903
+2 PLAC Borrås Augmentsgården, Magra, Västra Götaland, Sverige
+1 OCCU Timmerman
+1 DEAT
+2 DATE 10 augusti 1958
+2 PLAC Magra, Västra Götaland, Sverige
+0 @I282520313947@ INDI
+1 NAME Beda Selma /Larsdotter/
+2 GIVN Beda Selma
+2 SURN Larsdotter
+1 SEX F
+1 FAMC @F4@
+1 FAMS @F11@
+1 BIRT
+2 DATE 27 maj 1877
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+1 DEAT
+2 DATE 7 januari 1964
+2 PLAC Magra, Västra Götaland, Sverige
+0 @I282520315834@ INDI
+1 NAME Olaus /Andersson/
+2 GIVN Olaus
+2 SURN Andersson
+1 SEX M
+1 FAMC @F5@
+1 FAMS @F10@
+1 BIRT
+2 DATE 23 april 1831
+2 PLAC Stockholm, Ale-Skövde, Västra Götaland, Sverige
+1 RESI
+2 DATE 1837
+2 PLAC Stora Mjösundet, Ale-Skövde, Västra Götaland, Sverige
+1 DEAT
+2 DATE 16 november 1920
+2 PLAC Borrås Augmentsgården, Magra, Västra Götaland, Sverige
+0 @I282520315857@ INDI
+1 NAME Elin /Andersdotter/
+2 GIVN Elin
+2 SURN Andersdotter
+1 SEX F
+1 FAMC @F8@
+1 FAMS @F10@
+1 BIRT
+2 DATE 25 november 1831
+2 PLAC Mellby Kvistegården, Stora Mellby, Västra Götaland, Sverige
+1 DEAT
+2 DATE 24 maj 1909
+2 PLAC Borrås Augmentsgården, Magra, Västra Götaland, Sverige
+0 @I282520316432@ INDI
+1 NAME Lars /Andreasson/
+2 GIVN Lars
+2 SURN Andreasson
+1 SEX M
+1 FAMC @F2@
+1 FAMS @F4@
+1 BIRT
+2 DATE 29 december 1840
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+1 DEAT
+2 DATE 27 februari 1907
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520316515@ INDI
+1 NAME Maja /Jonasdotter/
+2 GIVN Maja
+2 SURN Jonasdotter
+1 SEX F
+1 FAMC @F6@
+1 FAMS @F4@
+1 BIRT
+2 DATE 14 mars 1852
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+1 DEAT
+2 DATE 28 oktober 1906
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520403820@ INDI
+1 NAME Anders /Eriksson/
+2 GIVN Anders
+2 SURN Eriksson
+1 SEX M
+1 FAMC @F3@
+1 FAMS @F5@
+1 BIRT
+2 DATE 15 juli 1792
+2 PLAC Kattunga, Ale-Skövde, Västra Götaland, Sverige
+1 OCCU Självägande bonde
+2 DATE 1831
+1 RESI
+2 DATE 1837
+2 PLAC Stora Mjösundet, Ale-Skövde, Västra Götaland, Sverige
+2 NOTE Inhyses med sina barn på sin syster Ingrids gård där även fadern Erik och brodern Olaus bodde.
+1 RESI
+2 DATE 1840
+2 NOTE Obestämd hemvist inom socknen
+1 OCCU Fattighjon
+2 DATE 1851
+1 _DCAUSE
+2 NOTE Ålderdom
+1 DEAT
+2 DATE 25 maj 1851
+2 PLAC Ale-Skövde, Västra Götaland, Sverige
+0 @I282520403835@ INDI
+1 NAME Maria /Andersdotter/
+2 GIVN Maria
+2 SURN Andersdotter
+1 SEX F
+1 FAMS @F5@
+1 BIRT
+2 DATE 26 augusti 1799
+1 _DCAUSE
+2 NOTE Kolera, tillsammans med 45 andra i socknen på ungefär 2 månader
+1 DEAT
+2 DATE 24 augusti 1834
+2 PLAC Stockholm, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520502141@ INDI
+1 NAME Gustaf /Olausson/
+2 GIVN Gustaf
+2 SURN Olausson
+1 SEX M
+1 FAMC @F10@
+1 BIRT
+2 DATE 17 december 1867
+2 PLAC Magra, Västra Götaland, Sverige
+1 EVEN
+2 TYPE Brott
+2 DATE 21 februari 1898
+2 PLAC Alingsås, Västra Götaland, Sverige
+2 NOTE Dömd av Alingsås rådhusrätt för fylleri och oljud till 15 kr böter.
+0 @I282520502488@ INDI
+1 NAME Anders /Hansson/
+2 GIVN Anders
+2 SURN Hansson
+1 SEX M
+1 FAMC @F9@
+1 FAMS @F8@
+1 BIRT
+2 DATE 20 september 1793
+2 PLAC Stora Mellby, Västra Götaland, Sverige
+1 _DCAUSE
+2 NOTE Fall av tak
+1 DEAT
+2 DATE 1 juli 1859
+2 PLAC Mellby Kvistegården, Stora Mellby, Västra Götaland, Sverige
+0 @I282520502495@ INDI
+1 NAME Kerstin  /Svensdotter/
+2 GIVN Kerstin 
+2 SURN Svensdotter
+1 SEX F
+1 FAMS @F8@
+1 BIRT
+2 DATE 20 april 1803
+2 PLAC Stora Mellby, Västra Götaland, Sverige
+1 DEAT
+2 DATE 13 december 1878
+2 PLAC Mellby Kvistegården, Stora Mellby, Västra Götaland, Sverige
+0 @I282520503981@ INDI
+1 NAME Andreas /Andersson/
+2 GIVN Andreas
+2 SURN Andersson
+1 SEX M
+1 FAMS @F2@
+1 BIRT
+2 DATE 1796
+1 DEAT
+2 DATE 1849
+2 PLAC Segerstad
+0 @I282520503987@ INDI
+1 NAME Anna /Svensdotter/
+2 GIVN Anna
+2 SURN Svensdotter
+1 SEX F
+1 FAMS @F2@
+1 BIRT
+2 DATE 24 juli 1804
+2 PLAC Magra, Västra Götaland, Sverige
+1 _DCAUSE
+2 NOTE Ålderdomsbräcklighet
+1 DEAT
+2 DATE 8 februari 1887
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520506239@ INDI
+1 NAME Jonas /Persson/
+2 GIVN Jonas
+2 SURN Persson
+1 SEX M
+1 FAMS @F6@
+1 BIRT
+2 DATE 29 maj 1814
+2 PLAC Magra, Västra Götaland, Sverige
+1 OCCU Hemmansägare
+2 DATE 1852
+1 OCCU Undantagshjon
+2 DATE 1894
+1 DEAT
+2 DATE 10 juni 1894
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520506242@ INDI
+1 NAME Maja /Jonasdotter/
+2 GIVN Maja
+2 SURN Jonasdotter
+1 SEX F
+1 FAMC @F7@
+1 FAMS @F6@
+1 BIRT
+2 DATE 20 september 1816
+2 PLAC Magra, Västra Götaland, Sverige
+1 OCCU Undantagsägarhustru
+2 DATE 1892
+1 DEAT
+2 DATE 4 februari 1892
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520535180@ INDI
+1 NAME Christina /Jonasdotter/
+2 GIVN Christina
+2 SURN Jonasdotter
+1 SEX F
+1 FAMC @F6@
+1 BIRT
+2 DATE 25 januari 1842
+2 PLAC Magra, Västra Götaland, Sverige
+0 @I282520535202@ INDI
+1 NAME Carl /Jonasson/
+2 GIVN Carl
+2 SURN Jonasson
+1 SEX M
+1 FAMC @F6@
+1 BIRT
+2 DATE 27 september 1844
+2 PLAC Magra, Västra Götaland, Sverige
+0 @I282520535223@ INDI
+1 NAME Anna /Jonasdotter/
+2 GIVN Anna
+2 SURN Jonasdotter
+1 SEX F
+1 FAMC @F6@
+1 BIRT
+2 DATE 6 december 1847
+2 PLAC Magra, Västra Götaland, Sverige
+1 DEAT
+2 DATE 14 oktober 1855
+2 PLAC Backen, Magra, Västra Götaland, Sverige
+0 @I282520535237@ INDI
+1 NAME Katrina /Jonasdotter/
+2 GIVN Katrina
+2 SURN Jonasdotter
+1 SEX F
+1 FAMC @F6@
+1 BIRT
+2 DATE 26 april 1855
+2 PLAC Magra, Västra Götaland, Sverige
+0 @I282520535421@ INDI
+1 NAME Andreas /Andersson/
+2 GIVN Andreas
+2 SURN Andersson
+1 SEX M
+1 FAMC @F5@
+1 BIRT
+2 DATE 15 februari 1826
+2 PLAC Stockholm, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520535435@ INDI
+1 NAME Christina /Andersdotter/
+2 GIVN Christina
+2 SURN Andersdotter
+1 SEX F
+1 FAMC @F5@
+1 BIRT
+2 DATE 14 augusti 1828
+2 PLAC Stockholm, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520535918@ INDI
+1 NAME Erik /Olofsson/
+2 GIVN Erik
+2 SURN Olofsson
+1 SEX M
+1 FAMS @F3@
+1 BIRT
+2 DATE 23 mars 1766
+1 _DCAUSE
+2 NOTE Ålderdom
+1 DEAT
+2 DATE 10 juni 1843
+2 PLAC Stora Mjösundet, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520535926@ INDI
+1 NAME Christina /Olsdotter/
+2 GIVN Christina
+2 SURN Olsdotter
+1 SEX F
+1 FAMS @F3@
+1 BIRT
+2 DATE 18 oktober 1769
+0 @I282520535979@ INDI
+1 NAME Olof /Eriksson/
+2 GIVN Olof
+2 SURN Eriksson
+1 SEX M
+1 FAMC @F3@
+1 BIRT
+2 DATE 18 januari 1798
+2 PLAC Kattunga, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520536013@ INDI
+1 NAME Olaus /Eriksson/
+2 GIVN Olaus
+2 SURN Eriksson
+1 SEX M
+1 FAMC @F3@
+1 BIRT
+2 DATE 13 april 1810
+2 PLAC Kattunga, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520536139@ INDI
+1 NAME Ingrid /Eriksdotter/
+2 GIVN Ingrid
+2 SURN Eriksdotter
+1 SEX F
+1 FAMC @F3@
+1 FAMS @F1@
+1 BIRT
+2 DATE 3 mars 1795
+2 PLAC Balltorp, Ale-Skövde, Västra Götaland, Sverige
+1 RESI
+2 DATE 1832
+2 PLAC Stora Mjösundet, Ale-Skövde, Västra Götaland, Sverige
+0 @I282520536172@ INDI
+1 NAME Jonas /Nilsson/
+2 GIVN Jonas
+2 SURN Nilsson
+1 SEX M
+1 FAMS @F1@
+1 BIRT
+2 DATE 27 juni 1789
+0 @I282520537849@ INDI
+1 NAME Per /Jonasson/
+2 GIVN Per
+2 SURN Jonasson
+1 SEX M
+1 FAMS @F7@
+0 @I282520537861@ INDI
+1 NAME Kerstin /Larsdotter/
+2 GIVN Kerstin
+2 SURN Larsdotter
+1 SEX F
+1 FAMS @F7@
+0 @I282525734696@ INDI
+1 NAME Hans /Andersson/
+2 GIVN Hans
+2 SURN Andersson
+1 SEX M
+1 FAMS @F9@
+0 @I282525734703@ INDI
+1 NAME Elin /Larsdotter/
+2 GIVN Elin
+2 SURN Larsdotter
+1 SEX F
+1 FAMS @F9@
+0 @F1@ FAM
+1 HUSB @I282520536172@
+1 WIFE @I282520536139@
+0 @F2@ FAM
+1 HUSB @I282520503981@
+1 WIFE @I282520503987@
+1 CHIL @I282520316432@
+0 @F3@ FAM
+1 HUSB @I282520535918@
+1 WIFE @I282520535926@
+1 CHIL @I282520403820@
+1 CHIL @I282520536139@
+1 CHIL @I282520535979@
+1 CHIL @I282520536013@
+0 @F4@ FAM
+1 HUSB @I282520316432@
+1 WIFE @I282520316515@
+1 CHIL @I282520313947@
+0 @F5@ FAM
+1 HUSB @I282520403820@
+1 WIFE @I282520403835@
+1 CHIL @I282520535421@
+1 CHIL @I282520535435@
+1 CHIL @I282520315834@
+0 @F6@ FAM
+1 HUSB @I282520506239@
+1 WIFE @I282520506242@
+1 CHIL @I282520535180@
+1 CHIL @I282520535202@
+1 CHIL @I282520535223@
+1 CHIL @I282520316515@
+1 CHIL @I282520535237@
+0 @F7@ FAM
+1 HUSB @I282520537849@
+1 WIFE @I282520537861@
+1 CHIL @I282520506242@
+0 @F8@ FAM
+1 HUSB @I282520502488@
+1 WIFE @I282520502495@
+1 CHIL @I282520315857@
+0 @F9@ FAM
+1 HUSB @I282525734696@
+1 WIFE @I282525734703@
+1 CHIL @I282520502488@
+0 @F10@ FAM
+1 HUSB @I282520315834@
+1 WIFE @I282520315857@
+1 CHIL @I282520502141@
+1 CHIL @I282520313875@
+0 @F11@ FAM
+1 HUSB @I282520313875@
+1 WIFE @I282520313947@
+1 CHIL @I282520313874@
+1 MARR
+2 DATE 22 mars 1904
+0 TRLR

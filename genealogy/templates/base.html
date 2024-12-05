@@ -17,7 +17,7 @@
                     <a href="{% url "home" %}" class="nav-link {% if section == "home" %}active{% endif %}">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url "family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Tree</a>
+                    <a href="{% url "family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Trees</a>
                 </li>
                 <li class="nav-item">
                     <a href="{% url "search" %}" class="nav-link {% if section == "search" %}active{% endif %}">Search</a>
@@ -44,14 +44,14 @@
         </div>
     </nav>
     {% if messages %}
-        <ul class="messages">
+        <div class="messages">
             {% for message in messages %}
-                <li class="{{ message.tags }}">
-                    {{ message|safe }}
-                    <a href="#" class="close">x</a>
-                </li>
+            <div class="alert {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show text-center" role="alert">
+                <div>{{ message|safe }}</div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
     {% endif %}
     <div id="content">
         <div class="container mt-5">
@@ -59,6 +59,7 @@
             {% endblock %}
         </div>
     </div>
-    <script src="https://unpkg.com/htmx.org@1.6.1"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="{% static 'js/base.js' %}"></script>
 </body>
 </html>
