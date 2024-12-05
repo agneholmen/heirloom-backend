@@ -285,7 +285,7 @@ def edit_person(request, id):
         else:
             return render(
                 request, 
-                'genealogy/edit_person.html',
+                'genealogy/edit_person_modal.html',
                 {'form': form},
                 status=400
                 )
@@ -294,7 +294,7 @@ def edit_person(request, id):
 
     return render(
         request, 
-        'genealogy/edit_person.html',
+        'genealogy/edit_person_modal.html',
         {'form': form}
     )
 

@@ -235,7 +235,7 @@ class EditPersonForm(forms.ModelForm):
             Row('birth_date', css_class="form-outline mb4"),
             Row('death_date', css_class="form-outline mb4"),
             Row(
-                Column(Submit('submit', 'Save Changes', css_class="btn btn-primary", data_bs_dismiss="modal")),
+                Column(Submit('submit', 'Save Changes', css_class="btn btn-primary")),
                 Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
                 css_class="form-outline mb4"
             )
