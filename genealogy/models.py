@@ -47,8 +47,6 @@ class Tree(models.Model):
     )
     upload_date = models.DateField(default=date.today)
     name = models.CharField(
-        blank=True,
-        null=True,
         max_length=100
     )
     description = models.CharField(
@@ -65,6 +63,8 @@ class Tree(models.Model):
     def clean(self):
         if Tree.objects.filter(user=self.user, name=self.name).exclude(id=self.id).exists():
             raise ValidationError({'name': 'A tree with that name already exists.'})
+        if not self.name:
+            raise ValidationError({'name': 'A tree needs to have a name.'})
 
     def __str__(self) -> str:
         return self.name
