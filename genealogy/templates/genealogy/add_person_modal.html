@@ -1,0 +1,11 @@
+{% load crispy_forms_tags %}
+{% load static %}
+
+<div class="modal-header">
+    <h5 class="modal-title">Add Person</h5>
+</div>
+<div class="modal-body">
+    <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleNewPersonRequest(event)">
+        {% crispy form %}
+    </form>
+</div>

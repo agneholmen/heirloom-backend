@@ -1,0 +1,16 @@
+{% load static %}
+
+<div class="modal-header bg-danger text-white">
+    <h5 class="modal-title" id="delete-person-modal-label">Confirm Deletion</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <p class="mb-0">Are you sure you want to delete the person <b>{{ person }}</b>?</p>
+</div>
+<div class="modal-footer">
+    <form hx-post="{% url 'delete_person' person.id %}" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleDeletePersonRequest(event)">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" id="confirm-delete-person">Delete</button>
+    </form>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+</div>

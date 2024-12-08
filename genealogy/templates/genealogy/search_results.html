@@ -14,11 +14,5 @@
             {% endfor %}
         </tbody>
     </table>
-    <div id="edit-person-modal" class="modal modal-blur fade" tab-index="-1">
-        <div id="dialog" class="modal-dialog modal-dialog-centered">
-            <div id="edit-person-modal-content" class="modal-content" hx-target="this">
-                
-            </div>
-        </div>
-    </div>
+    {% include 'genealogy/edit_person_modal_container.html' %}
 </div>

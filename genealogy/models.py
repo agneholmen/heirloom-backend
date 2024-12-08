@@ -120,7 +120,7 @@ class Individual(models.Model):
         return string
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return " ".join(filter(None, [self.first_name, self.last_name]))
     
     def save(self, *args, **kwargs):
         if self.birth_date:
@@ -150,6 +150,8 @@ class Family(models.Model):
     )
     marriage_date = models.CharField(max_length=100, null=True, blank=True)
     marriage_place = models.CharField(max_length=100, null=True, blank=True)
+    divorce_date = models.CharField(max_length=100, null=True, blank=True)
+    divorce_place = models.CharField(max_length=100, null=True, blank=True)
 
     def clean(self):
         if self.husband and self.husband.tree != self.tree:

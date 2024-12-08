@@ -3,6 +3,27 @@
 {% block title %}Person{% endblock title %}
 
 {% block content %}
+    <div class="float-end">
+        <button class="btn btn-primary" hx-get="{% url 'edit_person' person.id %}" class="btn btn-primary" 
+        hx-target="#edit-person-modal-content" type="button" hx-trigger="click" 
+        data-bs-toggle="modal" data-bs-target="#edit-person-modal" hx-swap="innerHTML">Edit Person</button>
+        <button class="btn btn-danger" type="button" disabled>Delete Person</button>
+        <button class="btn btn-success droptown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
+        <ul class="dropdown-menu">
+            <li><a href="#" class="dropdown-item">Child</a></li>
+            <li><a href="#" class="dropdown-item">Partner</a></li>
+            {% if father %}
+                <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Father</a></li>
+            {% else %}
+                <li><a href="#" class="dropdown-item">Father</a></li>
+            {% endif %}
+            {% if mother %}
+                <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Mother</a></li>
+            {% else %}
+                <li><a href="#" class="dropdown-item">Mother</a></li>
+            {% endif %}
+        </ul>
+    </div>
     <h1>{{ person }}</h1>
     <p>Name: {{ person }}</p>
     {% if person.birth_place %}
@@ -48,5 +69,19 @@
             {% endif %}
         {% endfor %}
     {% endif %}
+    {% include 'genealogy/edit_person_modal_container.html' %}
+    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" id="add-person-modal-content" hx-target="this">
+            </div>
+        </div>
+    </div>
+    <script>
+    function handleEditPersonRequest(evt) {
+        if(evt.detail.xhr.status == 204) {
+            location.reload();
+        }
+    }
+    </script>
 {% endblock content %}
 

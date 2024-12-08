@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, Q
-from django.http import HttpResponse, Http404, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from .forms import (
     EditPersonForm,
@@ -299,6 +299,27 @@ def edit_person(request, id):
     )
 
 @login_required
+def delete_person(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == "POST":
+        try:
+            this_person.delete()
+            messages.success(
+                request,
+                "Person successfully removed!"
+            )
+            return HttpResponse(status=204)
+        except:
+            messages.error(request, "There was a problem removing the person!")
+            return HttpResponse(status=400)
+    else:
+        return render(request, 'genealogy/delete_person_modal.html', {'person': this_person})
+
+@login_required
 def delete_tree(request, id):
     try:
         this_tree = Tree.objects.get(id=id)
@@ -310,15 +331,8 @@ def delete_tree(request, id):
         if request.headers.get('HX-Request') == 'true':
             return HttpResponse(status=204, headers={'HX-Trigger': 'tree-list-changed'})
         return redirect('family_tree')
-
-@login_required
-def delete_tree_modal(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
-
-    return render(request, 'genealogy/delete_tree_modal.html', {'tree': this_tree})
+    else:
+        return render(request, 'genealogy/delete_tree_modal.html', {'tree': this_tree})
 
 @login_required
 def edit_tree(request, id):
@@ -344,17 +358,6 @@ def edit_tree(request, id):
         'genealogy/edit_tree_modal.html',
         {'tree': this_tree, 'form': form}
     )
-
-@login_required
-def edit_tree_modal(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
-    
-    form = EditTreeForm(instance=this_tree)
-    
-    return render(request, 'genealogy/edit_tree_modal.html', {'tree': this_tree, 'form': form})
 
 @login_required
 def get_tree_list(request):

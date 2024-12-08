@@ -230,10 +230,18 @@ class EditPersonForm(forms.ModelForm):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('first_name', css_class="form-outline mb4"),
-            Row('last_name', css_class="form-outline mb4"),
-            Row('birth_date', css_class="form-outline mb4"),
-            Row('death_date', css_class="form-outline mb4"),
+            Row(
+                Column('first_name', css_class="form-outline mb4"),
+                Column('last_name', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('birth_date', css_class="form-outline mb4"),
+                Column('birth_place', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('death_date', css_class="form-outline mb4"),
+                Column('death_place', css_class="form-outline mb4")
+            ),
             Row(
                 Column(Submit('submit', 'Save Changes', css_class="btn btn-primary")),
                 Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
@@ -243,4 +251,34 @@ class EditPersonForm(forms.ModelForm):
 
     class Meta:
         model = Individual
-        fields = ['first_name', 'last_name', 'birth_date', 'death_date']
+        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place']
+
+class AddPersonForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('first_name', css_class="form-outline mb4"),
+                Column('last_name', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('birth_date', css_class="form-outline mb4"),
+                Column('birth_place', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('death_date', css_class="form-outline mb4"),
+                Column('death_place', css_class="form-outline mb4")
+            ),
+            Row(
+                Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
+                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
+                css_class="form-outline mb4"
+            )
+        )
+
+    class Meta:
+        model = Individual
+        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place']

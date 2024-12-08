@@ -5,10 +5,10 @@
         <td>{{ tree.number_of_individuals }}</td>
         <td>{{ tree.upload_date }}</td>
         <td>
-            <button class="btn btn-primary" type="button" hx-get="{% url 'edit_tree_modal' tree.id %}"
+            <button class="btn btn-primary" type="button" hx-get="{% url 'edit_tree' tree.id %}"
                     hx-target="#edit-tree-modal-content" hx-trigger="click" hx-swap="innerHTML"
                     data-bs-toggle="modal" data-bs-target="#edit-tree-modal">Edit</button>
-            <button class="btn btn-danger" type="button" hx-get="{% url 'delete_tree_modal' tree.id %}"
+            <button class="btn btn-danger" type="button" hx-get="{% url 'delete_tree' tree.id %}"
                     hx-target="#delete-tree-modal-content" hx-trigger="click" hx-swap="innerHTML"
                     data-bs-toggle="modal" data-bs-target="#delete-tree-modal">Delete</button>
         </td>

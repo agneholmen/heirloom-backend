@@ -34,6 +34,7 @@ WIFE_REGEX = re.compile('([0-9]) WIFE (@I[0-9]+@)')
 HUSB_REGEX = re.compile('([0-9]) HUSB (@I[0-9]+@)')
 CHIL_REGEX = re.compile('([0-9]) CHIL (@I[0-9]+@)')
 MARR_REGEX = re.compile('([0-9]) MARR')
+DIV_REGEX = re.compile('([0-9]) DIV')
 
 
 class Ind:
@@ -98,6 +99,7 @@ class FamilyGC:
         self.wife = ''
         self.children = []
         self.marriage = {'date': None, 'place': None}
+        self.divorce = {'date': None, 'place': None}
 
 
 class Gedcom:
@@ -288,10 +290,16 @@ class Gedcom:
                 family.children.append(matches.group(2))
 
             # MARR
-            if DEAT_REGEX.match(current_line):
+            if MARR_REGEX.match(current_line):
                 date, place = self.parse_marr(lines, current_index)
                 family.marriage['date'] = date
                 family.marriage['place'] = place
+
+            # DIV
+            if DIV_REGEX.match(current_line):
+                date, place = self.parse_div(lines, current_index)
+                family.divorce['date'] = date
+                family.divorce['place'] = place
 
         self.families[fam_id] = family
 
@@ -314,6 +322,30 @@ class Gedcom:
             matches = PLAC_REGEX.match(current_line)
             if matches:
                 place = matches.group(2)
+
+        return date, place
+
+    @staticmethod
+    def parse_div(lines, start_index):
+        matches = DIV_REGEX.match(lines[start_index])
+        level = matches.group(1)
+
+        date = None
+        place = None
+
+        for index, line in enumerate(lines[start_index + 1:]):
+            current_line = line.strip()
+            if line.startswith(str(level)) or current_line == '':
+                return date, place
+            matches = DATE_REGEX.match(current_line)
+            if matches:
+                date = matches.group(2)
+
+            matches = PLAC_REGEX.match(current_line)
+            if matches:
+                place = matches.group(2)
+
+        return date, place
 
     def get_tree_name(self):
         return self.name
@@ -432,6 +464,14 @@ def handle_uploaded_file(tree):
         if props.wife:
             wife = Individual.objects.get(tree=tree, indi_id=props.wife)
             fam.wife = wife
+        if props.marriage['date']:
+            fam.marriage_date = props.marriage['date']
+        if props.marriage['place']:
+            fam.marriage_place = props.marriage['place']
+        if props.divorce['date']:
+            fam.divorce_date = props.divorce['date']
+        if props.divorce['place']:
+            fam.divorce_place = props.divorce['place']
         for c in props.children:
             child = Child()
             child.family = fam
