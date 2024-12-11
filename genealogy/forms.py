@@ -272,6 +272,7 @@ class AddPersonForm(forms.ModelForm):
                 Column('death_date', css_class="form-outline mb4"),
                 Column('death_place', css_class="form-outline mb4")
             ),
+            Row('sex', css_class="form-outline mb4"),
             Row(
                 Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
                 Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
@@ -281,4 +282,42 @@ class AddPersonForm(forms.ModelForm):
 
     class Meta:
         model = Individual
-        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place']
+        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
+
+class AddPersonChildForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('first_name', css_class="form-outline mb4"),
+                Column('last_name', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('birth_date', css_class="form-outline mb4"),
+                Column('birth_place', css_class="form-outline mb4")
+            ),
+            Row(
+                Column('death_date', css_class="form-outline mb4"),
+                Column('death_place', css_class="form-outline mb4")
+            ),
+            Row('sex', css_class="form-outline mb4"),
+            Row('family', css_class="form-outline mb4"),
+            Row(
+                Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
+                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
+                css_class="form-outline mb4"
+            )
+        )
+
+    family = forms.ChoiceField(
+        choices=[],  # Set initial queryset as empty
+        required=True,
+        label="Select Family"
+    )
+
+    class Meta:
+        model = Individual
+        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from datetime import date
@@ -157,16 +157,21 @@ class Family(models.Model):
         if self.husband and self.husband.tree != self.tree:
             raise ValidationError("Husband must belong to the same tree as the family.")
         if self.wife and self.wife.tree != self.tree:
-            raise ValidationError("Wife must be long to the same tree as the family.")
+            raise ValidationError("Wife must belong to the same tree as the family.")
     
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        if self.husband and self.wife:
+            return f"{self.husband} and {self.wife}"
+        elif self.husband:
+            return f"{self.husband} and unknown mother"
+        else:
+            return f"{self.wife} and unknown father"
+
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tree', 'family_id'], name='Tree and family combination')
-        ]
         verbose_name_plural = "Families"
 
 class Child(models.Model):
@@ -200,6 +205,18 @@ class Child(models.Model):
             models.UniqueConstraint(fields=['family', 'indi'], name='Individual and family combination')
         ]
         verbose_name_plural = "Children"
+
+# Handle cleanup of family, so there are no families with only one person and no children
+# or families with only children
+@receiver(pre_delete, sender=Individual)
+def handle_family_cleanup(sender, instance, **kwargs):
+    families = Family.objects.filter(models.Q(husband=instance) | models.Q(wife=instance))
+    for family in families:
+        has_children = Child.objects.filter(family=family).exists()
+        if not has_children:
+            family.delete()
+        if (family.husband == instance and not family.wife) or (family.wife == instance and not family.husband):
+            family.delete()
 
 # Removes the GEDCOM file when you remove a Tree instance
 @receiver(post_delete, sender=Tree)

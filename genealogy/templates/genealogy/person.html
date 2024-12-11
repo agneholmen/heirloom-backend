@@ -10,36 +10,36 @@
         <button class="btn btn-danger" type="button" disabled>Delete Person</button>
         <button class="btn btn-success droptown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
         <ul class="dropdown-menu">
-            <li><a href="#" class="dropdown-item">Child</a></li>
-            <li><a href="#" class="dropdown-item">Partner</a></li>
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
+                hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                data-bs-target="#add-person-modal">Child</a></li>
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id %}" 
+                hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                data-bs-target="#add-person-modal">Partner</a></li>
             {% if father %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Father</a></li>
             {% else %}
-                <li><a href="#" class="dropdown-item">Father</a></li>
+                <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+                    hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                    data-bs-target="#add-person-modal">Father</a></li>
             {% endif %}
             {% if mother %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Mother</a></li>
             {% else %}
-                <li><a href="#" class="dropdown-item">Mother</a></li>
+                <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+                    hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                    data-bs-target="#add-person-modal">Mother</a></li>
             {% endif %}
         </ul>
     </div>
     <h1>{{ person }}</h1>
-    <p>Name: {{ person }}</p>
-    {% if person.birth_place %}
-        <p>Birth Place: {{ person.birth_place }}</p>
-    {% endif %}
-    {% if person.birth_date %}
-        <p>Birth Date: {{ person.birth_date }}</p>
-    {% endif %}
-    {% if person.death_place %}
-        <p>Death Place: {{ person.death_place }}</p>
-    {% endif %}
-    {% if person.death_date %}
-        <p>Death Date: {{ person.death_date }}</p>
-    {% endif %}
+    <p>Name: {{ person|default_if_none:"" }}</p>
+    <p>Birth Place: {{ person.birth_place|default_if_none:"" }}</p>
+    <p>Birth Date: {{ person.birth_date|default_if_none:"" }}</p>
+    <p>Death Place: {{ person.death_place|default_if_none:"" }}</p>
+    <p>Death Date: {{ person.death_date|default_if_none:"" }}</p>
     {% if person.death_cause %}
-        <p>Death Cause: {{ person.death_cause }}</p>
+    <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
     <h2>Parents</h2>
     <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.get_name_years }}</a>{% else %}-{% endif %}</p>
@@ -54,8 +54,8 @@
     {% else %}
         <p>No siblings</p>
     {% endif %}
-    <h2>Families</h2>
     {% if families %}
+        <h2>Families</h2>
         {% for family in families %}
             <h3>Family {{forloop.counter }}</h3>
             <p>Partner: {% if family.partner %}<a href="{% url 'person' family.partner.id %}">{{ family.partner.get_name_years }}</a>{% else %}-{% endif %}</p>

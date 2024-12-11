@@ -10,6 +10,8 @@ from .forms import (
     EditTreeForm,
     LoginForm,
     NewTreeForm,
+    AddPersonChildForm,
+    AddPersonForm,
     UserRegistrationForm,
     UserEditForm,
     ProfileEditForm,
@@ -318,6 +320,199 @@ def delete_person(request, id):
             return HttpResponse(status=400)
     else:
         return render(request, 'genealogy/delete_person_modal.html', {'person': this_person})
+
+@login_required
+def add_person_as_partner(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == 'POST':
+        form = AddPersonForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+
+            if cd['first_name'] or cd['last_name']:
+                partner = Individual()
+                partner.tree = this_person.tree
+                partner.first_name = cd['first_name']
+                partner.last_name = cd['last_name']
+                partner.birth_place = cd['birth_place']
+                partner.birth_date = cd['birth_date']
+                partner.death_place = cd['death_place']
+                partner.death_date = cd['death_date']
+                partner.sex = cd['sex']
+                partner.save()
+
+                family = Family()
+                if this_person.sex == 'M':
+                    family.husband = this_person
+                    family.wife = partner
+                else:
+                    family.husband = partner
+                    family.wife = this_person
+                family.tree = this_person.tree
+                family.save()
+
+                return HttpResponse(status=204)
+            else:
+                errors = {'name': 'A person needs at least a first name or last name!'}
+                response = JsonResponse({'errors': errors}, status=400)
+                return response   
+
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response
+    else:
+        form = AddPersonForm()
+
+    title = f'Add Partner for {this_person}'
+
+    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+
+@login_required
+def add_person_as_child(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    families = Family.objects.filter(Q(wife=this_person) | Q(husband=this_person))
+    family_choices = [(family.id, family) for family in families]
+    family_choices.append((0, f'{this_person} and unknown partner'))
+
+    if request.method == 'POST':
+        form = AddPersonChildForm(request.POST)
+        form.fields['family'].choices = family_choices
+        if form.is_valid():
+            cd = form.cleaned_data
+            if cd['first_name'] or cd['last_name']:
+                child = Individual()
+                child.tree = this_person.tree
+                child.first_name = cd['first_name']
+                child.last_name = cd['last_name']
+                child.birth_place = cd['birth_place']
+                child.birth_date = cd['birth_date']
+                child.death_place = cd['death_place']
+                child.death_date = cd['death_date']
+                child.sex = cd['sex']
+                child.save()
+
+                new_child = Child()
+                new_child.indi = child
+                if cd['family'] == 0:
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                    else:
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
+                else:
+                    family = Family.objects.get(id=cd['family'])
+                new_child.family = family
+                new_child.save()
+
+                return HttpResponse(status=204)
+            else:
+                errors = {'name': 'A person needs at least a first name or last name!'}
+                response = JsonResponse({'errors': errors}, status=400)
+                return response   
+
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response
+
+    else:
+        form = AddPersonChildForm()
+        form.fields['family'].choices = family_choices
+
+    title = f'Add Child for {this_person}'
+
+    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+
+@login_required
+def add_person_as_parent(request, id, parent):
+    try:
+        this_person = Individual.objects.get(id=id)
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+
+    if parent not in ('father', 'mother'):
+        raise Http404("Incorrect parent type.") 
+    
+    if request.method == 'POST':
+        form = AddPersonForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+
+            if cd['first_name'] or cd['last_name']:
+                new_parent = Individual()
+                new_parent.tree = this_person.tree
+                new_parent.first_name = cd['first_name']
+                new_parent.last_name = cd['last_name']
+                new_parent.birth_place = cd['birth_place']
+                new_parent.birth_date = cd['birth_date']
+                new_parent.death_place = cd['death_place']
+                new_parent.death_date = cd['death_date']
+                new_parent.sex = cd['sex']
+                new_parent.save()
+
+                # Basically, already has a parent
+                
+                try:
+                    child = Child.objects.get(indi=this_person)
+                    if parent == 'father' and child.family.wife:
+                        child.family.husband = new_parent
+                        child.family.save()
+                    elif parent == 'mother' and child.family.husband:
+                        child.family.wife = new_parent
+                        child.family.save()
+                    else:
+                        errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+                except:
+                    family = Family()
+                    family.tree = this_person.tree
+                    if parent == 'father':
+                        family.husband = new_parent
+                    elif parent == 'mother':
+                        family.wife = new_parent
+                    else:
+                        errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+                    family.save()
+                    new_child = Child()
+                    new_child.tree = this_person.tree
+                    new_child.indi = this_person
+                    new_child.family = family
+                    new_child.save()
+
+                return HttpResponse(status=204)
+            else:
+                errors = {'name': 'A person needs at least a first name or last name!'}
+                response = JsonResponse({'errors': errors}, status=400)
+                return response   
+
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response
+    else:
+        form = AddPersonForm()
+
+    if parent == 'father':
+        title = f'Add Father for {this_person}'
+    else:
+        title = f'Add Mother for {this_person}'
+
+    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+
+@login_required
+def add_person(request, id):
+    return HttpResponse(status=400)
 
 @login_required
 def delete_tree(request, id):

@@ -2,10 +2,12 @@
 {% load static %}
 
 <div class="modal-header">
-    <h5 class="modal-title">Add Person</h5>
+    <h5 class="modal-title">{{ modal_title }}</h5>
 </div>
 <div class="modal-body">
+    <div id="error-messages"></div>
     <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleNewPersonRequest(event)">
         {% crispy form %}
     </form>
 </div>
+<script src="{% static 'js/add_person_modal.js' %}"></script>
