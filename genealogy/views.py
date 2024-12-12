@@ -8,6 +8,7 @@ from django.shortcuts import render, redirect
 from .forms import (
     EditPersonForm,
     EditTreeForm,
+    FindExistingPersonForm,
     LoginForm,
     NewTreeForm,
     AddPersonChildForm,
@@ -329,22 +330,74 @@ def add_person_as_partner(request, id):
         raise Http404("Individual does not exist.")
     
     if request.method == 'POST':
-        form = AddPersonForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
+        if request.POST.get('identifier') == 'add_new_person':
+            form = AddPersonForm(request.POST)
+            find_people_form = FindExistingPersonForm()
+            if form.is_valid():
+                cd = form.cleaned_data
 
-            if cd['first_name'] or cd['last_name']:
-                partner = Individual()
-                partner.tree = this_person.tree
-                partner.first_name = cd['first_name']
-                partner.last_name = cd['last_name']
-                partner.birth_place = cd['birth_place']
-                partner.birth_date = cd['birth_date']
-                partner.death_place = cd['death_place']
-                partner.death_date = cd['death_date']
-                partner.sex = cd['sex']
-                partner.save()
+                if cd['first_name'] or cd['last_name']:
+                    partner = Individual()
+                    partner.tree = this_person.tree
+                    partner.first_name = cd['first_name']
+                    partner.last_name = cd['last_name']
+                    partner.birth_place = cd['birth_place']
+                    partner.birth_date = cd['birth_date']
+                    partner.death_place = cd['death_place']
+                    partner.death_date = cd['death_date']
+                    partner.sex = cd['sex']
+                    partner.save()
 
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
+
+                    return HttpResponse(status=204)
+                else:
+                    errors = {'name': 'A person needs at least a first name or last name!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response   
+
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+            
+        elif request.POST.get('identifier') == 'add_existing_person':
+            find_people_form = FindExistingPersonForm(request.POST)
+            dropdown_persons = get_dropdown_persons(request.POST.get('person'))
+            for p in dropdown_persons:
+                find_people_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
+            form = AddPersonForm()
+
+            if find_people_form.is_valid():
+                cd = find_people_form.cleaned_data
+                if type(cd['selected_person']) != int:
+                    errors = {'no_partner_selected': 'You did not select a partner!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+
+                try:
+                    partner = Individual.objects.get(id=cd['selected_person'])
+                except Individual.DoesNotExist:
+                    raise Http404("Individual does not exist.")
+                
+                if Family.objects.filter((Q(wife=this_person) & Q(husband=partner)) | (Q(wife=partner) & Q(husband=this_person))).exists():
+                    errors = {'already_a_family': 'The selected people already have a family!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                if (this_person.birth_year and partner.death_year and this_person.birth_year > partner.death_year) \
+                    or (this_person.death_year and partner.birth_year and partner.birth_year > this_person.death_year):
+                    errors = {'not_alive_at_the_same_time': 'The selected people were not alive at the same time!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
                 family = Family()
                 if this_person.sex == 'M':
                     family.husband = this_person
@@ -357,19 +410,38 @@ def add_person_as_partner(request, id):
 
                 return HttpResponse(status=204)
             else:
-                errors = {'name': 'A person needs at least a first name or last name!'}
-                response = JsonResponse({'errors': errors}, status=400)
-                return response   
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
 
-        else:
-            response = JsonResponse({'errors': dict(form.errors)}, status=400)
-            return response
     else:
         form = AddPersonForm()
+        find_people_form = FindExistingPersonForm()
 
     title = f'Add Partner for {this_person}'
 
-    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+    return render(request, 'genealogy/add_person_new_modal.html', {'form': form, 'search_form': find_people_form, 'modal_title': title})
+
+@login_required
+def search_people_for_dropdown(request):
+    query = request.POST.get('person', '')
+    persons = get_dropdown_persons(query)
+
+    return render(request, 'genealogy/person_dropdown.html', {'persons': persons})
+
+def get_dropdown_persons(query):
+    if query:
+        db_query_items = []
+        query_items = query.split(" ")
+        for q in query_items:
+            item = (Q(first_name__icontains=q) | Q(last_name__icontains=q))
+            db_query_items.append(item)
+
+        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items))[:10]
+
+    else:
+        persons = Individual.objects.none()
+
+    return persons
 
 @login_required
 def add_person_as_child(request, id):

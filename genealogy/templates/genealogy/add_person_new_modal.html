@@ -1,0 +1,31 @@
+{% load crispy_forms_tags %}
+{% load static %}
+
+<div class="modal-header">
+    <h5 class="modal-title" id="test-modal-label">{{ modal_title }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <ul class="nav nav-tabs" id="test-modal-tab" role="tablist">
+        <li class="nav-item">
+            <a href="#new-person" class="nav-link active" id="new-person-tab" role="tab" aria-controls="new-person" aria-selected="true" data-bs-toggle="tab">New Person</a>
+        </li>
+        <li class="nav-item">
+            <a href="#existing-person" class="nav-link" id="existing-person-tab" role="tab" aria-controls="existing-person" aria-selected="false" data-bs-toggle="tab">Existing Person</a>
+        </li>
+    </ul>
+    <div class="tab-content" id="test-modal-tab-content">
+        <div id="error-messages"></div>
+        <div class="tab-pane fade show active" id="new-person" role="tabpanel" aria-labelledby="new-person-tab">
+            <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleNewPersonRequest(event)">
+                {% crispy form %}
+            </form>
+        </div>
+        <div class="tab-pane fade" id="existing-person" role="tabpanel" aria-labelledby="existing-person-tab">
+            <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleNewPersonRequest(event)">
+                {% crispy search_form %}
+            </form>
+        </div>
+    </div>
+</div>
+<script src="{% static 'js/add_person_modal.js' %}"></script>

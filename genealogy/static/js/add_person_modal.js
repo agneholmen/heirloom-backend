@@ -10,9 +10,16 @@ function handleNewPersonRequest(evt) {
 
         for (const key in errors) {
             if(errors.hasOwnProperty(key)) {
-                var message = errors[key];
-                const alertDiv = createErrorMessage(message);
-                errorMessageContainer.appendChild(alertDiv);
+                if(Array.isArray(errors[key])) {
+                    errors[key].forEach(message => {
+                        const alertDiv = createErrorMessage(message);
+                        errorMessageContainer.appendChild(alertDiv);
+                    });
+                } else {
+                    var message = errors[key];
+                    const alertDiv = createErrorMessage(message);
+                    errorMessageContainer.appendChild(alertDiv);
+                }
             }
         }
     }

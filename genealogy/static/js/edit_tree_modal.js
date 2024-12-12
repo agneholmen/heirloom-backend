@@ -13,10 +13,16 @@ function handleEditTreeRequest(evt) {
 
         for (const key in errors) {
             if(errors.hasOwnProperty(key)) {
-                errors[key].forEach(message => {
+                if(Array.isArray(errors[key])) {
+                    errors[key].forEach(message => {
+                        const alertDiv = createErrorMessage(message);
+                        errorMessageContainer.appendChild(alertDiv);
+                    });
+                } else {
+                    var message = errors[key];
                     const alertDiv = createErrorMessage(message);
                     errorMessageContainer.appendChild(alertDiv);
-                });
+                }
             }
         }
     }
