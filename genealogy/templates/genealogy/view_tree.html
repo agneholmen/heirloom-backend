@@ -4,4 +4,17 @@
 
 {% block content %}
     <p>On this page you will be able to view your family tree.</p>
+    {% if tree.number_of_individuals == 0 %}
+        <p>You don't have any individuals in your tree.</p>
+        <p>Add one by clicking here:</p>
+        <button type="button" class="btn btn-primary" hx-get="{% url 'add_person' tree.id %}" 
+        hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+        data-bs-target="#add-person-modal">Add First Person</button>
+    {% endif %}
+    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" id="add-person-modal-content" hx-target="this">
+            </div>
+        </div>
+    </div>
 {% endblock content %}

@@ -86,7 +86,7 @@ def family_tree(request):
     else:
         form = NewTreeForm()
 
-    trees = Tree.objects.filter(user=request.user)
+    trees = Tree.objects.filter(user=request.user).order_by("name")
     trees = trees.annotate(number_of_individuals=Count("individuals"))
 
     return render(
@@ -109,7 +109,7 @@ def images(request):
 
 @login_required
 def search(request):
-    trees = Tree.objects.filter(user=request.user)
+    trees = Tree.objects.filter(user=request.user).order_by('name')
 
     if request.method == 'GET' and request.GET:
         query = ''
@@ -222,12 +222,10 @@ def search(request):
 def person(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
-
-    trees = Tree.objects.filter(user=request.user)
-    if this_person.tree not in trees:
-        raise Http404("Individual not found in any of your trees.")
 
     father = None
     mother = None
@@ -275,6 +273,8 @@ def person(request, id):
 def edit_person(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
     
@@ -305,6 +305,8 @@ def edit_person(request, id):
 def delete_person(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
     
@@ -326,6 +328,8 @@ def delete_person(request, id):
 def add_person_as_partner(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
     
@@ -447,6 +451,8 @@ def get_dropdown_persons(query):
 def add_person_as_child(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
     
@@ -508,6 +514,8 @@ def add_person_as_child(request, id):
 def add_person_as_parent(request, id, parent):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
 
@@ -584,12 +592,52 @@ def add_person_as_parent(request, id, parent):
 
 @login_required
 def add_person(request, id):
-    return HttpResponse(status=400)
+    try:
+        this_tree = Tree.objects.get(id=id)
+        if this_tree.user != request.user:
+            raise Http404("Tree not found for this user.")
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+
+    if request.method == 'POST':
+        form = AddPersonForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            if cd['first_name'] or cd['last_name']:
+                new_person = Individual()
+                new_person.tree = this_tree
+                new_person.first_name = cd['first_name']
+                new_person.last_name = cd['last_name']
+                new_person.birth_place = cd['birth_place']
+                new_person.birth_date = cd['birth_date']
+                new_person.death_place = cd['death_place']
+                new_person.death_date = cd['death_date']
+                new_person.sex = cd['sex']
+                new_person.save()
+
+                messages.success(request, 'New person added successfully!')
+
+                return HttpResponse(status=204)
+            else:
+                errors = {'name': 'A person needs at least a first name or last name!'}
+                response = JsonResponse({'errors': errors}, status=400)
+                return response
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response            
+    else:
+        form = AddPersonForm()
+
+    title = 'Add New Person'
+
+    return render(request, 'genealogy/add_person_modal.html', {'form' : form, 'modal_title': title})
 
 @login_required
 def delete_tree(request, id):
     try:
         this_tree = Tree.objects.get(id=id)
+        if this_tree.user != request.user:
+            raise Http404("Tree not found for this user.")
     except Tree.DoesNotExist:
         raise Http404("Tree does not exist.")
     
@@ -605,6 +653,8 @@ def delete_tree(request, id):
 def edit_tree(request, id):
     try:
         this_tree = Tree.objects.get(id=id)
+        if this_tree.user != request.user:
+            raise Http404("Tree not found for this user.")
     except Tree.DoesNotExist:
         raise Http404("Tree does not exist.")
 
@@ -635,7 +685,16 @@ def get_tree_list(request):
 
 @login_required
 def view_tree(request, id):
-    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree'})
+    try:
+        this_tree = Tree.objects.get(id=id)
+        if this_tree.user != request.user:
+            raise Http404("Tree not found for this user.")
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+    
+    this_tree.number_of_individuals = Tree.objects.filter(id=id).annotate(number_of_individuals=Count("individuals")).values_list("number_of_individuals", flat=True).first()
+
+    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree', 'tree': this_tree})
 
 def user_login(request):
     if request.method == 'POST':
@@ -724,6 +783,8 @@ def edit_profile(request):
 def update_search_result_row(request, id):
     try:
         this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
     

@@ -34,10 +34,8 @@
     </div>
     <h1>{{ person }}</h1>
     <p>Name: {{ person|default_if_none:"" }}</p>
-    <p>Birth Place: {{ person.birth_place|default_if_none:"" }}</p>
-    <p>Birth Date: {{ person.birth_date|default_if_none:"" }}</p>
-    <p>Death Place: {{ person.death_place|default_if_none:"" }}</p>
-    <p>Death Date: {{ person.death_date|default_if_none:"" }}</p>
+    <p>Birth: {{ person.birth_date|default_if_none:"" }} {{ person.birth_place|default_if_none:"" }}</p>
+    <p>Death: {{ person.death_date|default_if_none:"" }} {{ person.death_place|default_if_none:"" }}</p>
     {% if person.death_cause %}
     <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
