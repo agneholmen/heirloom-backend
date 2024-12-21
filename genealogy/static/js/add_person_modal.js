@@ -7,7 +7,6 @@ function handleNewPersonRequest(evt) {
         const errors = responseData.errors;
 
         errorMessageContainer = document.getElementById('error-messages');
-
         for (const key in errors) {
             if(errors.hasOwnProperty(key)) {
                 if(Array.isArray(errors[key])) {

@@ -14,8 +14,8 @@
                 hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                 data-bs-target="#add-person-modal">Child</a></li>
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id %}" 
-                hx-target="#add-person-modal-content-new" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                data-bs-target="#add-person-modal-new">Partner</a></li>
+                hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                data-bs-target="#add-person-modal">Partner</a></li>
             {% if father %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Father</a></li>
             {% else %}
@@ -37,7 +37,7 @@
     <p>Birth: {{ person.birth_date|default_if_none:"" }} {{ person.birth_place|default_if_none:"" }}</p>
     <p>Death: {{ person.death_date|default_if_none:"" }} {{ person.death_place|default_if_none:"" }}</p>
     {% if person.death_cause %}
-    <p>Death Cause: {{ person.death_cause }}</p>
+        <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
     <h2>Parents</h2>
     <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.get_name_years }}</a>{% else %}-{% endif %}</p>
@@ -68,15 +68,9 @@
         {% endfor %}
     {% endif %}
     {% include 'genealogy/edit_person_modal_container.html' %}
-    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal">
+    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal" aria-labelledby="modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="add-person-modal-content" hx-target="this">
-            </div>
-        </div>
-    </div>
-    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal-new" aria-labelledby="test-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="add-person-modal-content-new">
+            <div class="modal-content" id="add-person-modal-content">
                 
             </div>
         </div>

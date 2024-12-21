@@ -1,0 +1,9 @@
+<label for="id_family" class="form-label requiredField">
+    Select Family
+    <span class="asteriskField">*</span>
+</label>
+<select name="family" id="id_family" class="select form-select">
+    {% for family in families %}
+        <option value="{{ family.0 }}">{{ family.1 }}</option>
+    {% endfor %}
+</select>

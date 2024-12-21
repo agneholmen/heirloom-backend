@@ -1,4 +1,5 @@
 from django import forms
+from django.forms import Select
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
@@ -283,12 +284,20 @@ class AddPersonForm(forms.ModelForm):
 
     identifier = forms.CharField(initial='add_new_person', widget=forms.HiddenInput())
 
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['first_name'] or cleaned_data['last_name']):
+            raise forms.ValidationError('You must provide a first name or last name.')
+
+        return cleaned_data
+
     class Meta:
         model = Individual
         fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
 
 class FindExistingPersonForm(forms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, tree_id=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_method = 'POST'
@@ -303,9 +312,10 @@ class FindExistingPersonForm(forms.Form):
                 css_class="form-outline mb12"
             )
         )
+        if tree_id:
+            self.fields['person'].widget.attrs['hx-post'] = f'/genealogy/tree/{tree_id}/find-for-dropdown'
 
     person = forms.CharField(widget=forms.TextInput(attrs={
-        'hx-post': '/genealogy/person/find-for-dropdown',
         'hx-trigger': 'keyup[this.value.length > 3] changed delay:500ms',
         'hx-target': '#div_id_selected_person',
         'autocomplete': 'off',
@@ -314,12 +324,23 @@ class FindExistingPersonForm(forms.Form):
 
     selected_person = forms.ChoiceField(
         widget=forms.RadioSelect,
-        required=False,
+        required=True,
         choices=[]
     )
 
     identifier = forms.CharField(initial='add_existing_person', widget=forms.HiddenInput())
 
+class AddExistingPersonChildForm(FindExistingPersonForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['identifier'].initial = 'add_existing_person'
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+
+    family = forms.ChoiceField(
+        choices=[],  # Set initial queryset as empty
+        required=True,
+        label="Select Family"
+    )
 
 class AddPersonChildForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -355,6 +376,17 @@ class AddPersonChildForm(forms.ModelForm):
         label="Select Family"
     )
 
+    identifier = forms.CharField(initial='add_new_child', widget=forms.HiddenInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['first_name'] or cleaned_data['last_name']):
+            raise forms.ValidationError('You must provide a first name or last name.')
+
+        return cleaned_data
+
     class Meta:
         model = Individual
         fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
+

@@ -3,20 +3,21 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, Q
-from django.http import HttpResponse, HttpResponseRedirect, Http404, JsonResponse
+from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from .forms import (
+    AddExistingPersonChildForm,
+    AddPersonChildForm,
+    AddPersonForm,
     EditPersonForm,
     EditTreeForm,
     FindExistingPersonForm,
     LoginForm,
     NewTreeForm,
-    AddPersonChildForm,
-    AddPersonForm,
-    UserRegistrationForm,
-    UserEditForm,
     ProfileEditForm,
-    SearchForm
+    SearchForm,
+    UserEditForm,
+    UserRegistrationForm
 )
 from .models import (
     Child,
@@ -27,8 +28,6 @@ from .models import (
 )
 
 from . import gedcom
-
-from django_htmx.http import trigger_client_event
 
 from functools import reduce
 
@@ -336,7 +335,7 @@ def add_person_as_partner(request, id):
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
             form = AddPersonForm(request.POST)
-            find_people_form = FindExistingPersonForm()
+            find_people_form = FindExistingPersonForm(tree_id=this_person.tree.id)
             if form.is_valid():
                 cd = form.cleaned_data
 
@@ -373,8 +372,8 @@ def add_person_as_partner(request, id):
                 return response
             
         elif request.POST.get('identifier') == 'add_existing_person':
-            find_people_form = FindExistingPersonForm(request.POST)
-            dropdown_persons = get_dropdown_persons(request.POST.get('person'))
+            find_people_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
+            dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
             for p in dropdown_persons:
                 find_people_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
             form = AddPersonForm()
@@ -419,28 +418,49 @@ def add_person_as_partner(request, id):
 
     else:
         form = AddPersonForm()
-        find_people_form = FindExistingPersonForm()
+        find_people_form = FindExistingPersonForm(tree_id=this_person.tree.id)
 
     title = f'Add Partner for {this_person}'
 
-    return render(request, 'genealogy/add_person_new_modal.html', {'form': form, 'search_form': find_people_form, 'modal_title': title})
+    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': find_people_form, 'modal_title': title})
 
 @login_required
-def search_people_for_dropdown(request):
+def search_people_for_dropdown(request, id):
     query = request.POST.get('person', '')
-    persons = get_dropdown_persons(query)
+    persons = get_dropdown_persons(query, id)
 
     return render(request, 'genealogy/person_dropdown.html', {'persons': persons})
 
-def get_dropdown_persons(query):
+@login_required
+def families_for_dropdown(request):
+    person = request.POST.get('selected_person', '')
+    families = get_families(person)
+
+    return render(request, 'genealogy/family_dropdown.html', {'families': families})
+
+def get_families(person):
+    try:
+        this_person = Individual.objects.get(id=person)
+        families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
+        family_choices = [(family.id, family) for family in families]
+        family_choices.append((0, f'{this_person} and unknown partner'))
+    except:
+        family_choices = []
+
+    return family_choices
+
+def get_dropdown_persons(query, id):
     if query:
         db_query_items = []
         query_items = query.split(" ")
         for q in query_items:
-            item = (Q(first_name__icontains=q) | Q(last_name__icontains=q))
+            if q.isnumeric():
+                item = (Q(birth_year=q) | Q(death_year=q))
+            else:
+                item = (Q(first_name__icontains=q) | Q(last_name__icontains=q))
             db_query_items.append(item)
-
-        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items))[:10]
+        tree = Tree.objects.get(id=id)
+        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))[:10]
 
     else:
         persons = Individual.objects.none()
@@ -461,11 +481,13 @@ def add_person_as_child(request, id):
     family_choices.append((0, f'{this_person} and unknown partner'))
 
     if request.method == 'POST':
-        form = AddPersonChildForm(request.POST)
-        form.fields['family'].choices = family_choices
-        if form.is_valid():
-            cd = form.cleaned_data
-            if cd['first_name'] or cd['last_name']:
+        if request.POST.get('identifier') == 'add_new_person':
+            form = AddPersonChildForm(request.POST)
+            form.fields['family'].choices = family_choices
+            search_form = AddExistingPersonChildForm(tree_id=this_person.tree.id)
+            search_form.fields['family'].choices = family_choices
+            if form.is_valid():
+                cd = form.cleaned_data
                 child = Individual()
                 child.tree = this_person.tree
                 child.first_name = cd['first_name']
@@ -493,22 +515,67 @@ def add_person_as_child(request, id):
                 new_child.save()
 
                 return HttpResponse(status=204)
-            else:
-                errors = {'name': 'A person needs at least a first name or last name!'}
-                response = JsonResponse({'errors': errors}, status=400)
-                return response   
 
-        else:
-            response = JsonResponse({'errors': dict(form.errors)}, status=400)
-            return response
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+
+        elif request.POST.get('identifier') == 'add_existing_person':
+            form = AddPersonChildForm()
+            form.fields['family'].choices = family_choices
+            search_form = AddExistingPersonChildForm(request.POST, tree_id=this_person.tree.id)
+            search_form.fields['family'].choices = family_choices
+            dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
+            for p in dropdown_persons:
+                search_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
+            if search_form.is_valid():
+                cd = search_form.cleaned_data
+                if cd['selected_person'].isnumeric() == False:
+                    errors = {'no_child_selected': 'You did not select a child!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                try:
+                    child = Individual.objects.get(id=cd['selected_person'])
+                except Individual.DoesNotExist:
+                    raise Http404("Individual does not exist.")
+                
+                if Child.objects.filter(indi=child).exists():
+                    errors = {'already_a_child': 'The selected person already has parents!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                if cd['family'] == 0:
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                    else:
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
+                else:
+                    family = Family.objects.get(id=cd['family'])
+
+                new_child = Child()
+                new_child.indi = child
+                new_child.family = family
+                new_child.save()
+
+                return HttpResponse(status=204)
+            else:
+                print(search_form.errors)
+                response = JsonResponse({'errors': dict(search_form.errors)}, status=400)
+                return response
 
     else:
         form = AddPersonChildForm()
         form.fields['family'].choices = family_choices
+        search_form = AddExistingPersonChildForm(tree_id=this_person.tree.id)
+        search_form.fields['family'].choices = family_choices
 
     title = f'Add Child for {this_person}'
 
-    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': search_form, 'modal_title': title})
 
 @login_required
 def add_person_as_parent(request, id, parent):
@@ -523,11 +590,12 @@ def add_person_as_parent(request, id, parent):
         raise Http404("Incorrect parent type.") 
     
     if request.method == 'POST':
-        form = AddPersonForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
+        if request.POST.get('identifier') == 'add_new_person':
+            form = AddPersonForm(request.POST)
+            search_form = FindExistingPersonForm(tree_id=this_person.tree.id)
+            if form.is_valid():
+                cd = form.cleaned_data
 
-            if cd['first_name'] or cd['last_name']:
                 new_parent = Individual()
                 new_parent.tree = this_person.tree
                 new_parent.first_name = cd['first_name']
@@ -572,23 +640,100 @@ def add_person_as_parent(request, id, parent):
                     new_child.save()
 
                 return HttpResponse(status=204)
-            else:
-                errors = {'name': 'A person needs at least a first name or last name!'}
-                response = JsonResponse({'errors': errors}, status=400)
-                return response   
 
-        else:
-            response = JsonResponse({'errors': dict(form.errors)}, status=400)
-            return response
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+        elif request.POST.get('identifier') == 'add_existing_parent':
+            form = AddPersonForm()
+            search_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
+            dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
+            for p in dropdown_persons:
+                search_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
+            if search_form.is_valid():
+                cd = search_form.cleaned_data
+                if cd['selected_person'].isnumeric() == False:
+                    errors = {'no_parent_selected': 'You did not select a parent!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                try:
+                    new_parent = Individual.objects.get(id=cd['selected_person'])
+                except Individual.DoesNotExist:
+                    raise Http404("Individual does not exist.")
+                
+                # Find existing family. If failure, create new family.
+                try:
+                    child = Child.objects.get(indi=this_person)
+                    if child.family.husband == new_parent or child.family.wife == new_parent:
+                        errors = {'already_a_parent': 'This person is already a parent of the selected child!'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+                    
+                    if child.family.husband and child.family.wife:
+                        errors = {'already_two_parents': 'This person already has two parents!'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+                    
+                    if parent == 'father' and child.family.husband:
+                        errors = {'already_has_father': 'This person already has a father!'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+
+                    if parent == 'mother' and child.family.wife:
+                        errors = {'already_has_mother': 'This person already has a mother!'}
+                        response = JsonResponse({'errors': errors}, status=400)
+                        return response
+
+                    if parent == 'father':
+                        try:
+                            existing_family = Family.objects.get(Q(husband=new_parent) & Q(wife=child.family.wife))
+                            child.family = existing_family
+                            child.save()
+                        except:
+                            child.family.husband = new_parent
+                            child.family.save()
+                    else:
+                        try:
+                            existing_family = Family.objects.get(Q(husband=child.family.husband) & Q(wife=new_parent))
+                            child.family = existing_family
+                            child.save()
+                        except:
+                            child.family.wife = new_parent
+                            child.family.save()
+
+                    return HttpResponse(status=204)
+
+                # No parents yet   
+                except:
+                    family = Family()
+                    if new_parent.sex == 'M':
+                        family.husband = new_parent
+                    else:
+                        family.wife = new_parent
+                    family.tree = this_person.tree
+                    family.save()
+
+                    new_child = Child()
+                    new_child.indi = this_person
+                    new_child.family = family
+                    new_child.save()
+
+                    return HttpResponse(status=204)
+                
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
     else:
         form = AddPersonForm()
+        search_form = FindExistingPersonForm(tree_id=this_person.tree.id)
 
     if parent == 'father':
         title = f'Add Father for {this_person}'
     else:
         title = f'Add Mother for {this_person}'
 
-    return render(request, 'genealogy/add_person_modal.html', {'form': form, 'modal_title': title})
+    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': search_form, 'modal_title': title})
 
 @login_required
 def add_person(request, id):
@@ -630,7 +775,7 @@ def add_person(request, id):
 
     title = 'Add New Person'
 
-    return render(request, 'genealogy/add_person_modal.html', {'form' : form, 'modal_title': title})
+    return render(request, 'genealogy/add_new_person_modal.html', {'form' : form, 'modal_title': title})
 
 @login_required
 def delete_tree(request, id):
