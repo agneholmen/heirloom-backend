@@ -229,6 +229,7 @@ def person(request, id):
     father = None
     mother = None
     siblings = None
+    half_siblings = None
     families = None
     children_objects = Child.objects.filter(indi=this_person)
     if children_objects:
@@ -237,6 +238,12 @@ def person(request, id):
         mother = children_objects[0].family.wife
 
         siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id)
+
+        half_sibling_families = Family.objects.filter(
+            (Q(husband=father) & ~Q(wife=mother)) | 
+            (Q(wife=mother) & ~Q(husband=father))
+        )
+        half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person)
     
     family_objects = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
     if family_objects:
@@ -264,6 +271,7 @@ def person(request, id):
             'father': father,
             'mother': mother,
             'siblings': siblings,
+            'half_siblings': half_siblings,
             'families': families
         }
     )

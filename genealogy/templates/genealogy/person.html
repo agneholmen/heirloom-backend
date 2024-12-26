@@ -52,6 +52,14 @@
     {% else %}
         <p>No siblings</p>
     {% endif %}
+    {% if half_siblings %}
+        <h2>Half-siblings</h2>
+        <ul>
+        {% for half_sibling in half_siblings %}
+            <li><p><a href="{% url 'person' half_sibling.indi.id %}">{{ half_sibling.indi.get_name_years }}</a></p></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
     {% if families %}
         <h2>Families</h2>
         {% for family in families %}
