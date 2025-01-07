@@ -212,10 +212,9 @@ class Event(models.Model):
         ('funeral', 'Funeral'),
         ('graduation', 'Graduation'),
         ('immigration', 'Immigration'),
-        ('profession', 'Profession'),
         ('residence', 'Place of Residence'),
-        ('religion', 'Religion'),
-
+        ('birth', 'Birth'),
+        ('death', 'Death'),
         # Add other event types as needed
     ]
 
@@ -242,7 +241,6 @@ class FamilyEvent(models.Model):
         ('divorce', 'Divorce'),
         ('engagement', 'Engagement'),
         ('marriage', 'Marriage'),
-        ('separation', 'Separation'),
     ]
 
     family = models.ForeignKey(Family, on_delete=models.CASCADE)

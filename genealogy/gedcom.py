@@ -3,7 +3,7 @@ import io
 import os
 import re
 
-from genealogy.models import Child, Family, FamilyEvent, Individual, Tree
+from genealogy.models import Child, Event, Family, FamilyEvent, Individual, Tree
 import genealogy.date_functions as df
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -27,15 +27,33 @@ DATE_REGEX = re.compile('([0-9]) DATE (.*)')
 PLAC_REGEX = re.compile('([0-9]) PLAC (.*)')
 DCAUSE_REGEX = re.compile('[0-9] _DCAUSE')
 NOTE_REGEX = re.compile('([0-9]) NOTE (.*)')
+EVENT_REGEX = re.compile('1 ([A-Z]+)')
 
 # FAM
 FAM_REGEX = re.compile('^([0-9]) (@F[0-9]+@) FAM')
 WIFE_REGEX = re.compile('([0-9]) WIFE (@I[0-9]+@)')
 HUSB_REGEX = re.compile('([0-9]) HUSB (@I[0-9]+@)')
 CHIL_REGEX = re.compile('([0-9]) CHIL (@I[0-9]+@)')
-MARR_REGEX = re.compile('([0-9]) MARR')
-DIV_REGEX = re.compile('([0-9]) DIV')
 
+EVENT_MAPPING = {
+    'RESI': 'residence',
+    'EMIG': 'emigration',
+    'BAPM': 'baptism',
+    'BURI': 'funeral',
+    'IMMI': 'immigration',
+    'GRAD': 'graduation',
+    'CREM': 'cremation',
+    'CONF': 'confirmation',
+    'BIRT': 'birth',
+    'DEAT': 'death',
+}
+
+FAMILY_EVENT_MAPPING = {
+    'MARR': 'marriage',
+    'DIV': 'divorce',
+    'MARB': 'banns',
+    'ENGA': 'engagement',
+}
 
 class Ind:
     def __init__(self, indi_id):
@@ -47,6 +65,7 @@ class Ind:
         self.famc = ''
         self.birth = {'date': None, 'place': None, 'year': None}
         self.death = {'date': None, 'place': None, 'cause': '', 'year': None}
+        self.events = []
 
     def get_name(self):
         return f"{self.get_given_name()} {self.get_surname()}"
@@ -98,8 +117,7 @@ class FamilyGC:
         self.husband = ''
         self.wife = ''
         self.children = []
-        self.marriage = {'date': None, 'place': None}
-        self.divorce = {'date': None, 'place': None}
+        self.family_events = []
 
 
 class Gedcom:
@@ -186,6 +204,16 @@ class Gedcom:
                 matches = NOTE_REGEX.match(lines[index + 1].strip())
                 if matches:
                     indi.death['cause'] = matches.group(2)
+
+            # Find events
+            matches = EVENT_REGEX.match(current_line)
+            if matches:
+                event_type = matches.group(1)
+                if event_type in EVENT_MAPPING.keys():
+                    event = self.parse_event(lines, current_index)
+                    if event:
+                        event['type'] = EVENT_MAPPING[event_type]
+                        indi.events.append(event)
 
         self.individuals[indi_id] = indi
 
@@ -289,63 +317,38 @@ class Gedcom:
             if matches:
                 family.children.append(matches.group(2))
 
-            # MARR
-            if MARR_REGEX.match(current_line):
-                date, place = self.parse_marr(lines, current_index)
-                family.marriage['date'] = date
-                family.marriage['place'] = place
-
-            # DIV
-            if DIV_REGEX.match(current_line):
-                date, place = self.parse_div(lines, current_index)
-                family.divorce['date'] = date
-                family.divorce['place'] = place
+            # Find events
+            matches = EVENT_REGEX.match(current_line)
+            if matches:
+                event_type = matches.group(1)
+                if event_type in FAMILY_EVENT_MAPPING.keys():
+                    event = self.parse_event(lines, current_index)
+                    if event:
+                        event['type'] = FAMILY_EVENT_MAPPING[event_type]
+                        family.family_events.append(event)
 
         self.families[fam_id] = family
-
+    
     @staticmethod
-    def parse_marr(lines, start_index):
-        matches = MARR_REGEX.match(lines[start_index])
-        level = matches.group(1)
-
-        date = None
-        place = None
+    def parse_event(lines, start_index, level="2"):
+        event = {}
 
         for index, line in enumerate(lines[start_index + 1:]):
             current_line = line.strip()
-            if line.startswith(str(level)) or current_line == '':
-                return date, place
-            matches = DATE_REGEX.match(current_line)
-            if matches:
-                date = matches.group(2)
 
+            if not line.startswith(level) or current_line == '':
+                return event
             matches = PLAC_REGEX.match(current_line)
             if matches:
-                place = matches.group(2)
-
-        return date, place
-
-    @staticmethod
-    def parse_div(lines, start_index):
-        matches = DIV_REGEX.match(lines[start_index])
-        level = matches.group(1)
-
-        date = None
-        place = None
-
-        for index, line in enumerate(lines[start_index + 1:]):
-            current_line = line.strip()
-            if line.startswith(str(level)) or current_line == '':
-                return date, place
+                event['place'] = matches.group(2)
             matches = DATE_REGEX.match(current_line)
             if matches:
-                date = matches.group(2)
-
-            matches = PLAC_REGEX.match(current_line)
+                event['date'] = matches.group(2)
+            matches = NOTE_REGEX.match(current_line)
             if matches:
-                place = matches.group(2)
+                event['description'] = matches.group(2)
 
-        return date, place
+        return event
 
     def get_tree_name(self):
         return self.name
@@ -433,8 +436,8 @@ def handle_uploaded_file(tree):
     individuals = []
     families = []
     children = []
-    marriages = []
-    divorces = []
+    events = []
+    family_events = []
 
     for id, props in gedcom_tree.individuals.items():
         ind = Individual()
@@ -445,16 +448,27 @@ def handle_uploaded_file(tree):
         ind.sex = props.sex
         ind.birth_date = props.birth['date']
         ind.birth_place = props.birth['place']
-        ind.birth_year = props.birth['year']
+        ind.birth_year = df.extract_year(props.birth['date']) if props.birth['date'] else None
         ind.death_date = props.death['date']
         ind.death_place = props.death['place']
         ind.death_cause = props.death['cause']
-        ind.death_year = props.death['year']
+        ind.death_year = df.extract_year(props.death['date']) if props.death['date'] else None
+
+        for e in props.events:
+            event = Event()
+            event.indi = ind
+            event.event_type = e['type']
+            event.date = e.get('date', None)
+            event.year = df.extract_year(event.date) if event.date else None
+            event.place = e.get('place', None)
+            event.description = e.get('description', None)
+            events.append(event)
 
         individuals.append(ind)
 
     # Bulk add objects to improve performance
     Individual.objects.bulk_create(individuals)
+    Event.objects.bulk_create(events)
 
     for id, props in gedcom_tree.families.items():
         fam = Family()
@@ -466,20 +480,15 @@ def handle_uploaded_file(tree):
         if props.wife:
             wife = Individual.objects.get(tree=tree, indi_id=props.wife)
             fam.wife = wife
-        if props.marriage['date'] or props.marriage['place']:
-            marriage = FamilyEvent()
-            marriage.family = fam
-            marriage.event_type = 'marriage'
-            marriage.date = props.marriage['date']
-            marriage.place = props.marriage['place']
-            marriages.append(marriage)
-        if props.divorce['date'] or props.divorce['place']:
-            divorce = FamilyEvent()
-            divorce.family = fam
-            divorce.event_type = 'divorce'
-            divorce.date = props.divorce['date']
-            divorce.place = props.divorce['place']
-            divorces.append(divorce)
+        for e in props.family_events:
+            event = FamilyEvent()
+            event.family = fam
+            event.event_type = e['type']
+            event.date = e.get('date', None)
+            event.year = df.extract_year(event.date) if event.date else None
+            event.place = e.get('place', None)
+            event.description = e.get('description', None)
+            family_events.append(event)
         for c in props.children:
             child = Child()
             child.family = fam
@@ -491,5 +500,4 @@ def handle_uploaded_file(tree):
 
     Family.objects.bulk_create(families)
     Child.objects.bulk_create(children)
-    FamilyEvent.objects.bulk_create(marriages)
-    FamilyEvent.objects.bulk_create(divorces)
+    FamilyEvent.objects.bulk_create(family_events)
