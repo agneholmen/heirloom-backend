@@ -4,9 +4,11 @@
 
 {% block content %}
     <div class="float-end">
-        <button class="btn btn-primary" hx-get="{% url 'edit_person' person.id %}" class="btn btn-primary" 
-        hx-target="#edit-person-modal-content" type="button" hx-trigger="click" 
-        data-bs-toggle="modal" data-bs-target="#edit-person-modal" hx-swap="innerHTML">Edit Person</button>
+        <button class="btn btn-primary" hx-get="{% url 'edit_person' person.id %}" hx-target="#edit-person-modal-content" 
+            type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#edit-person-modal" 
+            hx-swap="innerHTML">Edit Person</button>
+        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
+            hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
         <button class="btn btn-danger" type="button" disabled>Delete Person</button>
         <button class="btn btn-success droptown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
         <ul class="dropdown-menu">
@@ -79,6 +81,13 @@
     <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal" aria-labelledby="modal-label" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" id="add-person-modal-content">
+                
+            </div>
+        </div>
+    </div>
+    <div class="modal fade modal-blur" tabindex="-1" id="modal" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" id="modal-content">
                 
             </div>
         </div>

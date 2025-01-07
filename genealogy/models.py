@@ -132,7 +132,7 @@ class Individual(models.Model):
     
 
 class Family(models.Model):
-    family_id = models.CharField(max_length=20)
+    family_id = models.CharField(max_length=20, null=True, blank=True)
     tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
     husband = models.ForeignKey(
         Individual,
@@ -148,10 +148,6 @@ class Family(models.Model):
         null=True,
         blank=True
     )
-    marriage_date = models.CharField(max_length=100, null=True, blank=True)
-    marriage_place = models.CharField(max_length=100, null=True, blank=True)
-    divorce_date = models.CharField(max_length=100, null=True, blank=True)
-    divorce_place = models.CharField(max_length=100, null=True, blank=True)
 
     def clean(self):
         if self.husband and self.husband.tree != self.tree:
@@ -206,6 +202,66 @@ class Child(models.Model):
         ]
         verbose_name_plural = "Children"
 
+
+class Event(models.Model):
+    EVENT_TYPES = [
+        ('baptism', 'Baptism'),
+        ('confirmation', 'Confirmation'),
+        ('cremation', 'Cremation'),
+        ('emigration', 'Emigration'),
+        ('funeral', 'Funeral'),
+        ('graduation', 'Graduation'),
+        ('immigration', 'Immigration'),
+        ('profession', 'Profession'),
+        ('residence', 'Place of Residence'),
+        ('religion', 'Religion'),
+
+        # Add other event types as needed
+    ]
+
+    indi = models.ForeignKey(Individual, on_delete=models.CASCADE)
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
+    date = models.CharField(max_length=100, null=True, blank=True)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    place = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.date:
+            self.year = extract_year(self.date)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} for {self.indi}"
+    
+
+class FamilyEvent(models.Model):
+    EVENT_TYPES = [
+        ('banns', 'Banns'),
+        ('divorce', 'Divorce'),
+        ('engagement', 'Engagement'),
+        ('marriage', 'Marriage'),
+        ('separation', 'Separation'),
+    ]
+
+    family = models.ForeignKey(Family, on_delete=models.CASCADE)
+    event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
+    date = models.CharField(max_length=100, null=True, blank=True)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    place = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        if self.date:
+            self.year = extract_year(self.date)
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} for {self.family}"
+
+
 # Handle cleanup of family, so there are no families with only one person and no children
 # or families with only children
 @receiver(pre_delete, sender=Individual)
@@ -216,6 +272,7 @@ def handle_family_cleanup(sender, instance, **kwargs):
         if not has_children:
             family.delete()
         if (family.husband == instance and not family.wife) or (family.wife == instance and not family.husband):
+            print(family)
             family.delete()
 
 # Removes the GEDCOM file when you remove a Tree instance

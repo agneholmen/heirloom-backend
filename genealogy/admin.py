@@ -1,7 +1,9 @@
 from django.contrib import admin
 from .models import (
     Child, 
-    Family, 
+    Event,
+    Family,
+    FamilyEvent, 
     Profile, 
     Tree, 
     Individual
@@ -29,10 +31,16 @@ class IndividualAdmin(admin.ModelAdmin):
 
 @admin.register(Family)
 class FamilyAdmin(admin.ModelAdmin):
-    list_display = [
-        'family_id', 'tree', 'husband', 'wife', 'marriage_date', 'marriage_place'
-    ]
+    list_display = ['id', 'family_id', 'tree', 'husband', 'wife']
 
 @admin.register(Child)
 class ChildAdmin(admin.ModelAdmin):
     list_display = ['family', 'indi', 'relation']
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ['id', 'event_type', 'indi', 'date', 'place', 'description', 'year']
+
+@admin.register(FamilyEvent)
+class FamilyEventAdmin(admin.ModelAdmin):
+    list_display = ['id', 'event_type', 'family', 'date', 'place', 'description', 'year']

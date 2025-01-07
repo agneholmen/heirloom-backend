@@ -3,7 +3,7 @@ from django.forms import Select
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
-from .models import Individual, Profile, Tree
+from .models import Event, FamilyEvent, Individual, Profile, Tree
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
@@ -349,6 +349,7 @@ class AddPersonChildForm(forms.ModelForm):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
+            Row('identifier'),
             Row(
                 Column('first_name', css_class="form-outline mb4"),
                 Column('last_name', css_class="form-outline mb4")
@@ -390,3 +391,81 @@ class AddPersonChildForm(forms.ModelForm):
         model = Individual
         fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
 
+class SelectEventForm(forms.Form):
+    EVENT_CHOICES = sorted(Event.EVENT_TYPES + FamilyEvent.EVENT_TYPES, key=lambda x: x[1])
+    EVENT_CHOICES.insert(0, ('select', 'Select Event Type'))
+
+    event_type = forms.ChoiceField(choices=EVENT_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+
+    def get_event_type_text(self):
+        for value, text in self.fields['event_type'].choices:
+            if value == self.cleaned_data['event_type']:
+                return text
+        return None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('event_type', css_class="form-outline mb4"),
+            Row(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal"), css_class="form-outline mb4")
+        )
+
+class AddEventForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('identifier'),
+            Row('date', css_class="form-outline mb4"),
+            Row('place', css_class="form-outline mb4"),
+            Row('description', css_class="form-outline mb4"),
+            Row(
+                Column(Submit('submit', 'Add Event', css_class="btn btn-primary")),
+                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
+                css_class="form-outline mb12"
+            )
+        )
+
+    identifier = forms.CharField(initial='add_event', widget=forms.HiddenInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['date'] or cleaned_data['place'] or cleaned_data['description']):
+            raise forms.ValidationError('You must fill out at least one of the fields.')
+
+        return cleaned_data
+
+    class Meta:
+        model = Event
+        fields = ['date', 'place', 'description']
+
+class AddFamilyEventForm(AddEventForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+
+    family = forms.ChoiceField(
+        choices=[],  # Set initial queryset as empty
+        required=True,
+        label="Select Family"
+    )
+
+    identifier = forms.CharField(initial='add_family_event', widget=forms.HiddenInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['date'] or cleaned_data['place'] or cleaned_data['description']):
+            raise forms.ValidationError('You must fill out at least one of the fields.')
+
+        return cleaned_data
+
+    class Meta:
+        model = FamilyEvent
+        fields = ['date', 'place', 'description']

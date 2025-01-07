@@ -6,7 +6,9 @@ from django.db.models import Count, Q
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from .forms import (
+    AddEventForm,
     AddExistingPersonChildForm,
+    AddFamilyEventForm,
     AddPersonChildForm,
     AddPersonForm,
     EditPersonForm,
@@ -16,18 +18,23 @@ from .forms import (
     NewTreeForm,
     ProfileEditForm,
     SearchForm,
+    SelectEventForm,
     UserEditForm,
     UserRegistrationForm
 )
 from .models import (
     Child,
+    Event,
     Family,
+    FamilyEvent,
     Individual, 
     Profile, 
     Tree
 )
 
 from . import gedcom
+
+from .date_functions import extract_year
 
 from functools import reduce
 
@@ -388,7 +395,7 @@ def add_person_as_partner(request, id):
 
             if find_people_form.is_valid():
                 cd = find_people_form.cleaned_data
-                if type(cd['selected_person']) != int:
+                if cd['selected_person'].isnumeric() == False:
                     errors = {'no_partner_selected': 'You did not select a partner!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
@@ -489,7 +496,7 @@ def add_person_as_child(request, id):
     family_choices.append((0, f'{this_person} and unknown partner'))
 
     if request.method == 'POST':
-        if request.POST.get('identifier') == 'add_new_person':
+        if request.POST.get('identifier') == 'add_new_child':
             form = AddPersonChildForm(request.POST)
             form.fields['family'].choices = family_choices
             search_form = AddExistingPersonChildForm(tree_id=this_person.tree.id)
@@ -830,6 +837,121 @@ def edit_tree(request, id):
     )
 
 @login_required
+def event_list(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+
+    if request.method == 'POST':
+        form = SelectEventForm(request.POST)
+        if form.is_valid():
+            event_type = form.cleaned_data['event_type']
+            event_type_text = form.get_event_type_text()
+
+            if any(e[0] == event_type for e in Event.EVENT_TYPES):
+                form = AddEventForm()
+                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type_text})
+            elif any(e[0] == event_type for e in FamilyEvent.EVENT_TYPES):
+                form = AddFamilyEventForm()
+                families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person) & Q(husband__isnull=False) & Q(wife__isnull=False))
+                if not families:
+                    errors = {'no_families': 'No families found for this person. First add a partner before adding family events!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+
+                form.fields['family'].choices = [(family.id, family) for family in families]
+
+                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type_text})
+            else:
+                errors = {'event_type': 'Invalid event type!'}
+                response = JsonResponse({'errors': errors}, status=400)
+                return response
+
+    else:
+        form = SelectEventForm()
+
+        return render(
+            request,
+            'genealogy/event_list.html',
+            {'form': form, 'person': this_person}
+        )
+
+@login_required
+def add_event(request, id, event_type):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == 'POST':
+        if request.POST.get('identifier') == 'add_event':
+            form = AddEventForm(request.POST)
+            if form.is_valid():
+                cd = form.cleaned_data
+                if cd['date'] and this_person.birth_year and extract_year(cd['date']) < this_person.birth_year:
+                    errors = {'date': 'Event date is before birth date!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                if cd['date'] and this_person.death_year and extract_year(cd['date']) > this_person.death_year:
+                    errors = {'date': 'Event date is after death date!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                cd = form.cleaned_data
+                event = Event()
+                event.indi = this_person
+                event.event_type = event_type
+                event.date = cd['date']
+                event.place = cd['place']
+                event.save()
+
+                return HttpResponse(status=204)
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+
+        elif request.POST.get('identifier') == 'add_family_event':
+            form = AddFamilyEventForm(request.POST)
+            families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person) & Q(husband__isnull=False) & Q(wife__isnull=False))
+            form.fields['family'].choices = [(family.id, family) for family in families]
+            if form.is_valid():
+                cd = form.cleaned_data
+                if cd['date'] and this_person.birth_year and extract_year(cd['date']) < this_person.birth_year:
+                    errors = {'date': 'Event date is before birth date!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                if cd['date'] and this_person.death_year and extract_year(cd['date']) > this_person.death_year:
+                    errors = {'date': 'Event date is after death date!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                if FamilyEvent.objects.filter(family=cd['family'], event_type=event_type).exists():
+                    errors = {'already_event': f'This family already has a {event_type} event!'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                
+                event = FamilyEvent()
+                event.family = Family.objects.get(id=cd['family'])
+                event.event_type = event_type
+                event.date = cd['date']
+                event.place = cd['place']
+                event.description = cd['description']
+                event.save()
+
+                return HttpResponse(status=204)
+                
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+    else:
+        print("EPIC FAIL")
+
+
+@login_required
 def get_tree_list(request):
     trees = Tree.objects.filter(user=request.user)
     trees = trees.annotate(number_of_individuals=Count("individuals"))
@@ -922,6 +1044,7 @@ def edit_profile(request):
     else:
         user_form = UserEditForm(instance=request.user)
         profile_form = ProfileEditForm(instance=request.user.profile)
+
     return render(
         request,
         'genealogy/edit_profile.html',

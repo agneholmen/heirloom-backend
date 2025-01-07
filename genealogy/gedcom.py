@@ -3,7 +3,7 @@ import io
 import os
 import re
 
-from genealogy.models import Child, Family, Individual, Tree
+from genealogy.models import Child, Family, FamilyEvent, Individual, Tree
 import genealogy.date_functions as df
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -433,6 +433,8 @@ def handle_uploaded_file(tree):
     individuals = []
     families = []
     children = []
+    marriages = []
+    divorces = []
 
     for id, props in gedcom_tree.individuals.items():
         ind = Individual()
@@ -464,14 +466,20 @@ def handle_uploaded_file(tree):
         if props.wife:
             wife = Individual.objects.get(tree=tree, indi_id=props.wife)
             fam.wife = wife
-        if props.marriage['date']:
-            fam.marriage_date = props.marriage['date']
-        if props.marriage['place']:
-            fam.marriage_place = props.marriage['place']
-        if props.divorce['date']:
-            fam.divorce_date = props.divorce['date']
-        if props.divorce['place']:
-            fam.divorce_place = props.divorce['place']
+        if props.marriage['date'] or props.marriage['place']:
+            marriage = FamilyEvent()
+            marriage.family = fam
+            marriage.event_type = 'marriage'
+            marriage.date = props.marriage['date']
+            marriage.place = props.marriage['place']
+            marriages.append(marriage)
+        if props.divorce['date'] or props.divorce['place']:
+            divorce = FamilyEvent()
+            divorce.family = fam
+            divorce.event_type = 'divorce'
+            divorce.date = props.divorce['date']
+            divorce.place = props.divorce['place']
+            divorces.append(divorce)
         for c in props.children:
             child = Child()
             child.family = fam
@@ -483,3 +491,5 @@ def handle_uploaded_file(tree):
 
     Family.objects.bulk_create(families)
     Child.objects.bulk_create(children)
+    FamilyEvent.objects.bulk_create(marriages)
+    FamilyEvent.objects.bulk_create(divorces)
