@@ -17,6 +17,7 @@ from .forms import (
     LoginForm,
     NewTreeForm,
     ProfileEditForm,
+    RemoveRelationshipForm,
     SearchForm,
     SelectEventForm,
     UserEditForm,
@@ -140,7 +141,9 @@ def search(request):
                         if name in n:
                             for variation in n:
                                 name_or_conditions.append(Q(first_name__icontains=variation))
-                                name_or_conditions.append(Q(last_name__icontains=variation))
+                                # Only search first name for variations of the same name
+                                if variation == name:
+                                    name_or_conditions.append(Q(last_name__icontains=variation))
                                 found = True
                             if found:
                                 break
@@ -246,10 +249,13 @@ def person(request, id):
 
         siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id)
 
-        half_sibling_families = Family.objects.filter(
-            (Q(husband=father) & ~Q(wife=mother)) | 
-            (Q(wife=mother) & ~Q(husband=father))
-        )
+        half_sibling_queries = Q()
+        if father is not None:
+            half_sibling_queries |= Q(husband=father) & ~Q(wife=mother)
+        if mother is not None:
+            half_sibling_queries |= Q(wife=mother) & ~Q(husband=father)
+
+        half_sibling_families = Family.objects.filter(half_sibling_queries)
         half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person)
     
     family_objects = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
@@ -268,7 +274,6 @@ def person(request, id):
 
             families.append(family)
         
-
     return render(
         request,
         'genealogy/person.html',
@@ -305,7 +310,7 @@ def edit_person(request, id):
                 'genealogy/edit_person_modal.html',
                 {'form': form},
                 status=400
-                )
+            )
     else:
         form = EditPersonForm(instance=this_person)
 
@@ -313,6 +318,148 @@ def edit_person(request, id):
         request, 
         'genealogy/edit_person_modal.html',
         {'form': form}
+    )
+
+@login_required
+def edit_relationships(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == 'POST':
+        used_form = RemoveRelationshipForm(request.POST)
+
+        if used_form.is_valid():
+            cd = used_form.cleaned_data
+            if cd['relationship_type'] == 'father':
+                this_child = Child.objects.get(indi=this_person, family__husband=cd['related_person_id'])
+                if this_child.family.wife:
+                    try:
+                        wife_family = Family.objects.get(wife=this_child.family.wife, husband=None)
+                        this_child.family = wife_family
+                        this_child.save()
+                    except:
+                        wife_family = Family()
+                        wife_family.wife = this_child.family.wife
+                        wife_family.tree = this_child.family.tree
+                        wife_family.save()
+                        this_child.family = wife_family
+                        this_child.save()
+                else:
+                    this_child.delete()
+
+            elif cd['relationship_type'] == 'mother':
+                this_child = Child.objects.get(indi=this_person, family__wife=cd['related_person_id'])
+                if this_child.family.husband:
+                    try:
+                        husband_family = Family.objects.get(husband=this_child.family.husband, wife=None)
+                        this_child.family = husband_family
+                        this_child.save()
+                    except:
+                        husband_family = Family()
+                        husband_family.husband = this_child.family.husband
+                        husband_family.tree = this_child.family.tree
+                        husband_family.save()
+                        this_child.family = husband_family
+                        this_child.save()
+                else:
+                    this_child.delete()
+            elif cd['relationship_type'] == 'child':
+                this_child = Child.objects.get(Q(indi=cd['related_person_id']) & (Q(family__husband=this_person) | Q(family__wife=this_person)))
+                if (this_child.family.wife == this_person and not this_child.family.husband) \
+                    or (this_child.family.husband == this_person and not this_child.family.wife):
+                    if this_child.family.children.count() == 1:
+                        this_child.family.delete()
+                    else:
+                        this_child.delete()
+                else:
+                    if this_child.family.husband == this_person:
+                        try:
+                            wife_family = Family.objects.get(wife=this_child.family.wife, husband=None)
+                            this_child.family = wife_family
+                            this_child.save()
+                        except:
+                            wife_family = Family()
+                            wife_family.wife = this_child.family.wife
+                            wife_family.tree = this_child.family.tree
+                            wife_family.save()
+                            this_child.family = wife_family
+                            this_child.save()
+                    else:
+                        try:
+                            husband_family = Family.objects.get(husband=this_child.family.husband, wife=None)
+                            this_child.family = husband_family
+                            this_child.save()
+                        except:
+                            husband_family = Family()
+                            husband_family.husband = this_child.family.husband
+                            husband_family.tree = this_child.family.tree
+                            husband_family.save()
+                            this_child.family = husband_family
+                            this_child.save()
+            elif cd['relationship_type'] == 'partner':
+                this_family = Family.objects.get(Q(husband=this_person) | Q(wife=this_person), Q(husband=cd['related_person_id']) | Q(wife=cd['related_person_id']))
+                if this_family.children.count() == 0:
+                    this_family.delete()
+                else:
+                    response = JsonResponse({'errors': {'have_children': 'Cannot remove partner since they have children together!'}}, status=400)
+                    return response
+            else:
+                response = JsonResponse({'errors': {'relationship_type': 'Invalid relationship type!'}}, status=400)
+                return response
+            
+            response = HttpResponse(status=204)
+            return response
+
+        else:
+            response = JsonResponse({'errors': dict(used_form.errors)}, status=400)
+            return response
+    else:
+        father = None
+        mother = None
+        father_form = None
+        mother_form = None
+        children_forms = []
+        partner_forms = []
+        children_objects = Child.objects.filter(indi=this_person)
+        if children_objects:
+            # Needs fixing later to handle if it belongs to multiple families. For now I'll just take the first item.
+            father = children_objects[0].family.husband
+            mother = children_objects[0].family.wife
+
+            if father:
+                father_form = RemoveRelationshipForm(initial={'relationship_type': 'father', 'related_person_id': father.id})
+            if mother:
+                mother_form = RemoveRelationshipForm(initial={'relationship_type': 'mother', 'related_person_id': mother.id})
+
+        children = Child.objects.filter(Q(family__husband=this_person) | Q(family__wife=this_person))
+        for c in children:
+            child_form = RemoveRelationshipForm(initial={'relationship_type': 'child', 'related_person_id': c.indi.id})
+            children_forms.append((c.indi, child_form))
+        families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
+        for f in families:
+            if f.husband == this_person:
+                partner_form = RemoveRelationshipForm(initial={'relationship_type': 'partner', 'related_person_id': f.wife.id})
+                partner_forms.append((f.wife, partner_form))
+            else:
+                partner_form = RemoveRelationshipForm(initial={'relationship_type': 'partner', 'related_person_id': f.husband.id})
+                partner_forms.append((f.husband, partner_form))
+
+    return render(
+        request,
+        'genealogy/edit_relationships_modal.html',
+        {
+            'father_form': father_form,
+            'mother_form': mother_form,
+            'father': father,
+            'mother': mother,
+            'partners': partner_forms,
+            'children': children_forms,
+            'person': this_person
+        }
     )
 
 @login_required
@@ -659,7 +806,7 @@ def add_person_as_parent(request, id, parent):
             else:
                 response = JsonResponse({'errors': dict(form.errors)}, status=400)
                 return response
-        elif request.POST.get('identifier') == 'add_existing_parent':
+        elif request.POST.get('identifier') == 'add_existing_person':
             form = AddPersonForm()
             search_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
             dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
@@ -703,6 +850,9 @@ def add_person_as_parent(request, id, parent):
                     if parent == 'father':
                         try:
                             existing_family = Family.objects.get(Q(husband=new_parent) & Q(wife=child.family.wife))
+                            obsolete_wife_family = Family.objects.filter(Q(wife=child.family.wife) & Q(husband=None))
+                            if obsolete_wife_family and obsolete_wife_family[0].children.count() == 1:
+                                obsolete_wife_family[0].delete()
                             child.family = existing_family
                             child.save()
                         except:
@@ -711,6 +861,9 @@ def add_person_as_parent(request, id, parent):
                     else:
                         try:
                             existing_family = Family.objects.get(Q(husband=child.family.husband) & Q(wife=new_parent))
+                            obsolete_husband_family = Family.objects.filter(Q(husband=child.family.husband) & Q(wife=None))
+                            if obsolete_husband_family and obsolete_husband_family[0].children.count() == 1:
+                                obsolete_husband_family[0].delete()
                             child.family = existing_family
                             child.save()
                         except:

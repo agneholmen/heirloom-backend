@@ -1,3 +1,5 @@
+{% load bootstrap_icons %}
+
 {% for tree in trees %}
     <tr id="tree-{{ tree.id }}">
         <td><a href="{% url 'view_tree' tree.id %}">{{ tree.name }}</a></td>
@@ -5,12 +7,12 @@
         <td>{{ tree.number_of_individuals }}</td>
         <td>{{ tree.upload_date }}</td>
         <td>
-            <button class="btn btn-primary" type="button" hx-get="{% url 'edit_tree' tree.id %}"
-                    hx-target="#edit-tree-modal-content" hx-trigger="click" hx-swap="innerHTML"
-                    data-bs-toggle="modal" data-bs-target="#edit-tree-modal">Edit</button>
-            <button class="btn btn-danger" type="button" hx-get="{% url 'delete_tree' tree.id %}"
-                    hx-target="#delete-tree-modal-content" hx-trigger="click" hx-swap="innerHTML"
-                    data-bs-toggle="modal" data-bs-target="#delete-tree-modal">Delete</button>
+            <a href="#" hx-get="{% url 'edit_tree' tree.id %}"
+                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
+                    data-bs-toggle="modal" data-bs-target="#modal">{% bs_icon 'pencil-square' size="2em" color="#0d6efd" %}</a>
+            <a href="#" hx-get="{% url 'delete_tree' tree.id %}"
+                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
+                    data-bs-toggle="modal" data-bs-target="#modal">{% bs_icon 'trash' size="2em" color="#dc3545" %}</a>
         </td>
     </tr>
 {% endfor %} 

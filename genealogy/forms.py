@@ -409,8 +409,7 @@ class SelectEventForm(forms.Form):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('event_type', css_class="form-outline mb4"),
-            Row(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal"), css_class="form-outline mb4")
+            Row('event_type', css_class="form-outline mb4")
         )
 
 class AddEventForm(forms.ModelForm):
@@ -469,3 +468,17 @@ class AddFamilyEventForm(AddEventForm):
     class Meta:
         model = FamilyEvent
         fields = ['date', 'place', 'description']
+
+class RemoveRelationshipForm(forms.Form):
+    relationship_type = forms.CharField(widget=forms.HiddenInput())
+    related_person_id = forms.IntegerField(widget=forms.HiddenInput())
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('relationship_type'),
+            Row('related_person_id')
+        )

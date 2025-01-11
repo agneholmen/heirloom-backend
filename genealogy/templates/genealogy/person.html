@@ -1,36 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}{{ person }}{% endblock title %}
+{% block title %}{{ person.get_name_years }}{% endblock title %}
 
 {% block content %}
     <div class="float-end">
-        <button class="btn btn-primary" hx-get="{% url 'edit_person' person.id %}" hx-target="#edit-person-modal-content" 
-            type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#edit-person-modal" 
-            hx-swap="innerHTML">Edit Person</button>
-        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
+        <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
+        <ul class="dropdown-menu">
+            <li>
+                <a href="#" class="dropdown-item" hx-get="{% url 'edit_person' person.id %}" hx-target="#modal-content" 
+                    type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal" 
+                    hx-swap="innerHTML">Quick Edit</a>
+            </li>
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'edit_relationships' person.id %}" hx-target="#modal-content"
+                    type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal"
+                    hx-swap="innerHTML">Edit Relationships</a></li>
+        </ul>
+        <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
             hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
         <button class="btn btn-danger" type="button" disabled>Delete Person</button>
-        <button class="btn btn-success droptown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
+        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
         <ul class="dropdown-menu">
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
-                hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                data-bs-target="#add-person-modal">Child</a></li>
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                data-bs-target="#modal">Child</a></li>
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id %}" 
-                hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                data-bs-target="#add-person-modal">Partner</a></li>
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                data-bs-target="#modal">Partner</a></li>
             {% if father %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Father</a></li>
             {% else %}
                 <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
-                    hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                    data-bs-target="#add-person-modal">Father</a></li>
+                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                    data-bs-target="#modal">Father</a></li>
             {% endif %}
             {% if mother %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Mother</a></li>
             {% else %}
                 <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
-                    hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                    data-bs-target="#add-person-modal">Mother</a></li>
+                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                    data-bs-target="#modal">Mother</a></li>
             {% endif %}
         </ul>
     </div>
@@ -77,27 +85,5 @@
             {% endif %}
         {% endfor %}
     {% endif %}
-    {% include 'genealogy/edit_person_modal_container.html' %}
-    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal" aria-labelledby="modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="add-person-modal-content">
-                
-            </div>
-        </div>
-    </div>
-    <div class="modal fade modal-blur" tabindex="-1" id="modal" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="modal-content">
-                
-            </div>
-        </div>
-    </div>
-    <script>
-    function handleEditPersonRequest(evt) {
-        if(evt.detail.xhr.status == 204) {
-            location.reload();
-        }
-    }
-    </script>
+    {% include 'genealogy/modal_container.html' %}
 {% endblock content %}
-

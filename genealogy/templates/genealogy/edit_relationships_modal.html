@@ -1,0 +1,88 @@
+{% load crispy_forms_tags %}
+{% load static %}
+{% load bootstrap_icons %}
+
+<div class="modal-header">
+    <h5 class="modal-title">Edit Relationships</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <div id="error-messages"></div>
+    <h3>Father</h3>
+    <div id="father-form" class="border rounded p-2">
+    {% if father %}
+        <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
+            {% csrf_token %}
+            <span>{{ father.get_name_years }}</span>
+            {% crispy father_form %}
+            <button type="submit" class="btn btn-close ms-auto"></button>
+        </form>
+    {% else %}
+    <div class="d-flex justify-content-between">
+        <span>No father</span>
+        <a href="#" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+            hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
+            {% bs_icon 'person-add' size="2em" color="green" %}</a>
+    </div>
+    {% endif %}
+    </div>
+    <h3>Mother</h3>
+    <div id="mother-form" class="border rounded p-2">
+    {% if mother %}
+        <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
+            <span>{{ mother.get_name_years }}</span>
+            {% csrf_token %}
+            {% crispy mother_form %}
+            <button type="submit" class="btn btn-close ms-auto"></button>
+        </form>
+    {% else %}
+        <div class="d-flex justify-content-between">
+            <span>No mother</span>
+            <a href="#" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
+                {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
+        </div>
+    {% endif %}
+    </div>
+    <h3>Partners</h3>
+    {% if partners %}
+        {% for partner in partners %}
+            <div class="border rounded p-2 m-2">
+                <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
+                    <span>{{ partner.0.get_name_years }}</span>
+                    {% csrf_token %}
+                    {% crispy partner.1 %}
+                    <button type="submit" class="btn btn-close ms-auto"></button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="d-flex justify-content-between border rounded p-2 m-2">
+            <span>No partners</span>
+            <a href="#" hx-get="{% url 'add_person_as_partner' person.id %}"
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
+                {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
+        </div>
+    {% endif %}
+    <h3>Children</h3>
+    {% if children %}
+        {% for child in children %}
+            <div class="border rounded p-2 m-2">
+                <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
+                    <span>{{ child.0.get_name_years }}</span>
+                    {% csrf_token %}
+                    {% crispy child.1 %}
+                    <button type="submit" class="btn btn-close ms-auto"></button>
+                </form>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="d-flex justify-content-between border rounded p-2 m-2">
+            <span>No children</span>
+            <a href="#" hx-get="{% url 'add_person_as_child' person.id %}"
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
+                {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
+        </div>
+    {% endif %}
+</div>
+<script src="{% static 'js/edit_relationships_modal.js' %}"></script>

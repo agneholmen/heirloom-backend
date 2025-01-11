@@ -118,6 +118,37 @@ class Individual(models.Model):
                 string += f" ( - {self.death_year})"
 
         return string
+    
+    def get_name_years_event(self):
+        string = ""
+        if self.first_name:
+            string += self.first_name
+        if self.last_name:
+            string += f" {self.last_name}"
+
+        birth = self.get_birth_event()
+        death = self.get_death_event()
+
+        if (birth and birth.year) and (death and death.year):
+            string += f" ({birth.year} - {death.year})"
+        elif birth and birth.year:
+            string += f" ({birth.year} - )"
+        elif death and death.year: 
+            string += f" ( - {death.year})"
+
+        return string
+
+    def get_birth_event(self):
+        try:
+            return Event.objects.get(indi=self, event_type='birth')
+        except Event.DoesNotExist:
+            return None
+        
+    def get_death_event(self):
+        try:
+            return Event.objects.get(indi=self, event_type='death')
+        except Event.DoesNotExist:
+            return None
 
     def __str__(self):
         return " ".join(filter(None, [self.first_name, self.last_name]))
@@ -182,7 +213,8 @@ class Child(models.Model):
         Family,
         on_delete=models.CASCADE,
         null=True,
-        blank=True                       
+        blank=True,
+        related_name="children"                   
     )
     indi = models.ForeignKey(
         Individual,
@@ -224,6 +256,12 @@ class Event(models.Model):
     year = models.PositiveSmallIntegerField(null=True, blank=True)
     place = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+
+    def clean(self):
+        if self.event_type == 'birth' and Event.objects.filter(indi=self.indi, event_type='birth').exists():
+            raise ValidationError("An individual can only have one birth event.")
+        if self.event_type == 'death' and Event.objects.filter(indi=self.indi, event_type='death').exists():
+            raise ValidationError("An individual can only have one death event.")
 
     def save(self, *args, **kwargs):
         if self.date:
