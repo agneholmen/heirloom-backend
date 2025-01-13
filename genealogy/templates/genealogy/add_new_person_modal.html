@@ -2,12 +2,22 @@
 {% load static %}
 
 <div class="modal-header">
-    <h5 class="modal-title">{{ modal_title }}</h5>
+    <h5 class="modal-title">Add New Person</h5>
 </div>
 <div class="modal-body">
     <div id="error-messages"></div>
     <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleNewPersonRequest(event)">
-        {% crispy form %}
+        {% crispy person_form %}
+        {% crispy birth_form %}
+        {% crispy death_form %}
+        <div class="row form-outline mb4">
+            <div class="col-md">
+                <button type="submit" name="submit" value="Save Changes" class="btn btn-primary">Save Changes</button>
+            </div>
+            <div class="col-md">
+                <button type="button" name="cancel" value="Cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>   
     </form>
 </div>
 <script src="{% static 'js/add_person_modal.js' %}"></script>

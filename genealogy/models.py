@@ -109,22 +109,6 @@ class Individual(models.Model):
             string += self.first_name
         if self.last_name:
             string += f" {self.last_name}"
-        if self.birth_year or self.death_year:
-            if self.birth_year and self.death_year:
-                string += f" ({self.birth_year} - {self.death_year})"
-            elif self.birth_year:
-                string += f" ({self.birth_year} - )"
-            else:
-                string += f" ( - {self.death_year})"
-
-        return string
-    
-    def get_name_years_event(self):
-        string = ""
-        if self.first_name:
-            string += self.first_name
-        if self.last_name:
-            string += f" {self.last_name}"
 
         birth = self.get_birth_event()
         death = self.get_death_event()
@@ -137,6 +121,48 @@ class Individual(models.Model):
             string += f" ( - {death.year})"
 
         return string
+    
+    def get_birth_date(self):
+        birth_event = self.get_birth_event()
+        if birth_event:
+            return birth_event.date
+        else:
+            return None
+        
+    def get_death_date(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.date
+        else:
+            return None
+        
+    def get_birth_year(self):
+        birth_event = self.get_birth_event()
+        if birth_event:
+            return birth_event.year
+        else:
+            return None
+        
+    def get_death_year(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.year
+        else:
+            return None
+        
+    def get_birth_place(self):
+        birth_event = self.get_birth_event()
+        if birth_event:
+            return birth_event.place
+        else:
+            return None
+        
+    def get_death_place(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.place
+        else:
+            return None
 
     def get_birth_event(self):
         try:
@@ -149,6 +175,12 @@ class Individual(models.Model):
             return Event.objects.get(indi=self, event_type='death')
         except Event.DoesNotExist:
             return None
+        
+    def has_birth_event(self):
+        return Event.objects.filter(indi=self, event_type='birth').exists()
+    
+    def has_death_event(self):
+        return Event.objects.filter(indi=self, event_type='death').exists()
 
     def __str__(self):
         return " ".join(filter(None, [self.first_name, self.last_name]))
@@ -258,14 +290,31 @@ class Event(models.Model):
     description = models.TextField(blank=True, null=True)
 
     def clean(self):
-        if self.event_type == 'birth' and Event.objects.filter(indi=self.indi, event_type='birth').exists():
-            raise ValidationError("An individual can only have one birth event.")
-        if self.event_type == 'death' and Event.objects.filter(indi=self.indi, event_type='death').exists():
-            raise ValidationError("An individual can only have one death event.")
+        try:
+            birth_event = Event.objects.get(indi=self.indi, event_type='birth')
+            if birth_event.pk != self.pk:
+                raise ValidationError("An individual can only have one birth event.")
+        except:
+            pass
+        try:
+            death_event = Event.objects.get(indi=self.indi, event_type='death')
+            if death_event.pk != self.pk:
+                raise ValidationError("An individual can only have one death event.")
+        except:
+            pass
+        
+    @staticmethod
+    def get_or_new(person, event_type):
+        try:
+            return Event.objects.get(indi=person, event_type=event_type)
+        except:
+            return Event(indi=person, event_type=event_type)
 
     def save(self, *args, **kwargs):
         if self.date:
             self.year = extract_year(self.date)
+        elif self.year:
+            self.year = None
 
         super().save(*args, **kwargs)
 
@@ -291,6 +340,8 @@ class FamilyEvent(models.Model):
     def save(self, *args, **kwargs):
         if self.date:
             self.year = extract_year(self.date)
+        elif self.year:
+            self.year = None
 
         super().save(*args, **kwargs)
 
@@ -308,7 +359,6 @@ def handle_family_cleanup(sender, instance, **kwargs):
         if not has_children:
             family.delete()
         if (family.husband == instance and not family.wife) or (family.wife == instance and not family.husband):
-            print(family)
             family.delete()
 
 # Removes the GEDCOM file when you remove a Tree instance

@@ -224,37 +224,7 @@ class SearchForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": "Latest possible death year"})
     )
 
-class EditPersonForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column('first_name', css_class="form-outline mb4"),
-                Column('last_name', css_class="form-outline mb4")
-            ),
-            Row(
-                Column('birth_date', css_class="form-outline mb4"),
-                Column('birth_place', css_class="form-outline mb4")
-            ),
-            Row(
-                Column('death_date', css_class="form-outline mb4"),
-                Column('death_place', css_class="form-outline mb4")
-            ),
-            Row(
-                Column(Submit('submit', 'Save Changes', css_class="btn btn-primary")),
-                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
-                css_class="form-outline mb4"
-            )
-        )
-
-    class Meta:
-        model = Individual
-        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place']
-
-class AddPersonForm(forms.ModelForm):
+class PersonNamesForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
@@ -267,22 +237,9 @@ class AddPersonForm(forms.ModelForm):
                 Column('last_name', css_class="form-outline mb4")
             ),
             Row(
-                Column('birth_date', css_class="form-outline mb4"),
-                Column('birth_place', css_class="form-outline mb4")
-            ),
-            Row(
-                Column('death_date', css_class="form-outline mb4"),
-                Column('death_place', css_class="form-outline mb4")
-            ),
-            Row('sex', css_class="form-outline mb4"),
-            Row(
-                Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
-                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
-                css_class="form-outline mb4"
+                Column('sex', css_class="form-outline mb4")
             )
         )
-
-    identifier = forms.CharField(initial='add_new_person', widget=forms.HiddenInput())
 
     def clean(self):
         cleaned_data = super().clean()
@@ -294,7 +251,43 @@ class AddPersonForm(forms.ModelForm):
 
     class Meta:
         model = Individual
-        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
+        fields = ['first_name', 'last_name', 'sex']
+        widgets = {
+            'sex': forms.RadioSelect,
+        }
+
+    identifier = forms.CharField(initial='', widget=forms.HiddenInput(), required=False)
+
+class PersonNamesFamilyForm(PersonNamesForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+
+    family = forms.ChoiceField(
+        choices=[],  # Set initial queryset as empty
+        required=True,
+        label="Select Family"
+    )
+
+class EventShortForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('date', css_class="form-outline mb4"),
+                Column('place', css_class="form-outline mb4")
+            )
+        )
+        if self.prefix:
+            self.fields['date'].label = f"{self.prefix.capitalize()} Date"
+            self.fields['place'].label = f"{self.prefix.capitalize()} Place"
+
+    class Meta:
+        model = Event
+        fields = ['date', 'place']
 
 class FindExistingPersonForm(forms.Form):
     def __init__(self, *args, tree_id=None, **kwargs):
@@ -341,55 +334,6 @@ class AddExistingPersonChildForm(FindExistingPersonForm):
         required=True,
         label="Select Family"
     )
-
-class AddPersonChildForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row('identifier'),
-            Row(
-                Column('first_name', css_class="form-outline mb4"),
-                Column('last_name', css_class="form-outline mb4")
-            ),
-            Row(
-                Column('birth_date', css_class="form-outline mb4"),
-                Column('birth_place', css_class="form-outline mb4")
-            ),
-            Row(
-                Column('death_date', css_class="form-outline mb4"),
-                Column('death_place', css_class="form-outline mb4")
-            ),
-            Row('sex', css_class="form-outline mb4"),
-            Row('family', css_class="form-outline mb4"),
-            Row(
-                Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
-                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
-                css_class="form-outline mb4"
-            )
-        )
-
-    family = forms.ChoiceField(
-        choices=[],  # Set initial queryset as empty
-        required=True,
-        label="Select Family"
-    )
-
-    identifier = forms.CharField(initial='add_new_child', widget=forms.HiddenInput())
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        if not (cleaned_data['first_name'] or cleaned_data['last_name']):
-            raise forms.ValidationError('You must provide a first name or last name.')
-
-        return cleaned_data
-
-    class Meta:
-        model = Individual
-        fields = ['first_name', 'last_name', 'birth_date', 'birth_place', 'death_date', 'death_place', 'sex']
 
 class SelectEventForm(forms.Form):
     EVENT_CHOICES = sorted(Event.EVENT_TYPES + FamilyEvent.EVENT_TYPES, key=lambda x: x[1])

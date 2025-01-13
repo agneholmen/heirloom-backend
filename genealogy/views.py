@@ -9,13 +9,13 @@ from .forms import (
     AddEventForm,
     AddExistingPersonChildForm,
     AddFamilyEventForm,
-    AddPersonChildForm,
-    AddPersonForm,
-    EditPersonForm,
+    EventShortForm,
     EditTreeForm,
     FindExistingPersonForm,
     LoginForm,
     NewTreeForm,
+    PersonNamesFamilyForm,
+    PersonNamesForm,
     ProfileEditForm,
     RemoveRelationshipForm,
     SearchForm,
@@ -40,20 +40,30 @@ from .date_functions import extract_year
 from functools import reduce
 
 NAMES_REPLACE = [
-    ["Maja", "Maria"],
-    ["Gustaf", "Gustav"],
-    ["Carl", "Karl"],
     ["Brita", "Britta"],
-    ["Kerstin", "Kjerstin"],
+    ["Cajsa", "Kajsa", "Caisa"],
+    ["Carl", "Karl"],
+    ["Catharina", "Katharina", "Katarina"],
+    ["Christina", "Kristina"],
+    ["Elisabet", "Elisabeth"],
+    ["Erik", "Eric"],
+    ["Fredrik", "Fredric"],
+    ["Gustaf", "Gustav"],
     ["Halvar", "Halvard"],
+    ["Kerstin", "Kjerstin"],
+    ["Maja", "Maria"],
+    ["Olof", "Olov"],
+    ["Oscar", "Oskar"],
     ["Per", "Pär", "Pehr", "Pähr"],
-    ["Kajsa", "Cajsa", "Caisa"],
-    ["Kristina", "Christina"],
-    ["Katharina", "Katarina", "Catharina"],
     ["Sofia", "Sophia"],
     ["Ulrika", "Ulrica"],
-    ["Fredrik", "Fredric"],
-    ["Erik", "Eric"]
+]
+
+SURNAMES_REPLACE = [
+    ["Eriksson", "Ersson"],
+    ["Eriksdotter", "Ersdotter"],
+    ["Olofsson", "Olsson"],
+    ["Olofsdotter", "Olsdotter"],
 ]
 
 @login_required
@@ -128,6 +138,8 @@ def search(request):
             and_conditions = []
             or_conditions = []
             name_conditions = []
+            birth_conditions = []
+            death_conditions = []
 
             query += f"&tree={cd['tree'].id}"
             query += f"&results_per_page={cd['results_per_page']}"
@@ -136,7 +148,8 @@ def search(request):
                 name_strings = cd['name'].split()
                 for name in name_strings:
                     name_or_conditions = []
-                    found = False
+                    found_first = False
+                    found_last = False
                     for n in NAMES_REPLACE:
                         if name in n:
                             for variation in n:
@@ -144,12 +157,23 @@ def search(request):
                                 # Only search first name for variations of the same name
                                 if variation == name:
                                     name_or_conditions.append(Q(last_name__icontains=variation))
-                                found = True
-                            if found:
+                                found_first = True
+                            if found_first:
                                 break
-                    if found == False:
-                        name_or_conditions.append(Q(first_name__icontains=name))
-                        name_or_conditions.append(Q(last_name__icontains=name))
+                    if found_first == False:
+                        for n in SURNAMES_REPLACE:
+                            if name in n:
+                                for variation in n:
+                                    name_or_conditions.append(Q(last_name__icontains=variation))
+                                    # Only search first name for variations of the same name
+                                    if variation == name:
+                                        name_or_conditions.append(Q(first_name__icontains=variation))
+                                    found_last = True
+                                if found_last:
+                                    break
+                        if found_last == False:
+                            name_or_conditions.append(Q(first_name__icontains=name))
+                            name_or_conditions.append(Q(last_name__icontains=name))
 
                     name_or_conditions = reduce(lambda x, y: x | y, name_or_conditions)
                     if name_conditions:
@@ -157,30 +181,33 @@ def search(request):
                     else:
                         name_conditions = name_or_conditions
 
+            birth_conditions = []
+            death_conditions = []
+
             if cd['birth_place']:
                 query += f"&birth_place={cd['birth_place']}"
-                and_conditions.append(Q(birth_place__icontains=cd['birth_place']))
+                birth_conditions.append(Q(event__place__icontains=cd['birth_place']))
             if cd['birth_date']:
                 query += f"&birth_date={cd['birth_date']}"
-                and_conditions.append(Q(birth_date__icontains=cd['birth_date']))
+                birth_conditions.append(Q(event__date__icontains=cd['birth_date']))
             if cd['birth_year_start']:
                 query += f"&birth_year_start={cd['birth_year_start']}"
-                and_conditions.append(Q(birth_year__gte=cd['birth_year_start']))
+                birth_conditions.append(Q(event__year__gte=cd['birth_year_start']))
             if cd['birth_year_end']:
                 query += f"&birth_year_end{cd['birth_year_end']}"
-                and_conditions.append(Q(birth_year__lte=cd['birth_year_end']))
+                birth_conditions.append(Q(event__year__lte=cd['birth_year_end']))
             if cd['death_place']:
                 query += f"&death_place={cd['death_place']}"
-                and_conditions.append(Q(death_place__icontains=cd['death_place']))
+                death_conditions.append(Q(event__place__icontains=cd['death_place']))
             if cd['death_date']:
                 query += f"&death_date={cd['death_date']}"
-                and_conditions.append(Q(death_date__icontains=cd['death_date']))
+                death_conditions.append(Q(event__date__icontains=cd['death_date']))
             if cd['death_year_start']:
                 query += f"&death_year_start={cd['death_year_start']}"
-                and_conditions.append(Q(death_year__gte=cd['death_year_start']))
+                death_conditions.append(Q(event__year__gte=cd['death_year_start']))
             if cd['death_year_end']:
                 query += f"&death_year_end={cd['death_year_end']}"
-                and_conditions.append(Q(death_year__lte=cd['death_year_end']))
+                death_conditions.append(Q(event__year__lte=cd['death_year_end']))
 
             final_query = Q(tree=cd['tree'])
             if and_conditions:
@@ -194,6 +221,12 @@ def search(request):
 
             results_per_page = cd['results_per_page']
             people = Individual.objects.filter(final_query)
+            if birth_conditions:
+                birth_query = Q(event__event_type='birth') & reduce(lambda x, y: x & y, birth_conditions)
+                people = people.filter(birth_query)
+            if death_conditions:
+                death_query = Q(event__event_type='death') & reduce(lambda x, y: x & y, death_conditions)
+                people = people.filter(death_query)
             paginator = Paginator(people, results_per_page)
             page_number = request.GET.get('page', 1)
             try:
@@ -273,6 +306,9 @@ def person(request, id):
                 family['partner'] = f.husband
 
             families.append(family)
+
+    birth = this_person.get_birth_event()
+    death = this_person.get_death_event()
         
     return render(
         request,
@@ -280,6 +316,8 @@ def person(request, id):
         {
             'section': 'search',
             'person': this_person,
+            'birth': birth,
+            'death': death,
             'father': father,
             'mother': mother,
             'siblings': siblings,
@@ -298,26 +336,47 @@ def edit_person(request, id):
         raise Http404("Individual does not exist.")
     
     if request.method == 'POST':
-        form = EditPersonForm(request.POST, instance=this_person)
-        if form.is_valid():
-            form.save()
-            response = HttpResponse(status=204)
-            response.headers = {'HX-Trigger': f'update-person-{str(id)}'}
+        person_form = PersonNamesForm(instance=this_person, data=request.POST)
+        birth_form = EventShortForm(instance=Event.get_or_new(this_person, 'birth'), data=request.POST, prefix='birth')
+        death_form = EventShortForm(instance=Event.get_or_new(this_person, 'death'), data=request.POST, prefix='death')
+
+        if not person_form.is_valid():
+            response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
             return response
-        else:
-            return render(
-                request, 
-                'genealogy/edit_person_modal.html',
-                {'form': form},
-                status=400
-            )
+        if not birth_form.is_valid():
+            response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+            return response
+        if not death_form.is_valid():
+            response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+            return response
+
+        person_form.save()
+        bf_data = birth_form.cleaned_data
+        if bf_data['date'] or bf_data['place']:
+            birth_form.save()
+        elif not bf_data['date'] and not bf_data['place'] and not birth_form.instance.description and birth_form.instance.pk:
+            birth_form.instance.delete()
+        df_data = death_form.cleaned_data
+        if df_data['date'] or df_data['place']:
+            death_form.save()
+        elif not df_data['date'] and not df_data['place'] and not death_form.instance.description and death_form.instance.pk:
+            death_form.instance.delete()
+        response = HttpResponse(status=204)
+        response.headers = {'HX-Trigger': f'update-person-{str(id)}'}
+        return response
     else:
-        form = EditPersonForm(instance=this_person)
+        person_form = PersonNamesForm(instance=this_person)
+        birth_form = EventShortForm(instance=Event.get_or_new(this_person, 'birth'), prefix='birth')
+        death_form = EventShortForm(instance=Event.get_or_new(this_person, 'death'), prefix='death')
 
     return render(
         request, 
         'genealogy/edit_person_modal.html',
-        {'form': form}
+        {
+            'person_form': person_form,
+            'birth_form': birth_form,
+            'death_form': death_form
+        }
     )
 
 @login_required
@@ -496,49 +555,56 @@ def add_person_as_partner(request, id):
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
-            form = AddPersonForm(request.POST)
-            find_people_form = FindExistingPersonForm(tree_id=this_person.tree.id)
-            if form.is_valid():
-                cd = form.cleaned_data
+            person_form = PersonNamesForm(request.POST)
+            birth_form = EventShortForm(request.POST, prefix='birth')
+            death_form = EventShortForm(request.POST, prefix='death')
 
-                if cd['first_name'] or cd['last_name']:
-                    partner = Individual()
-                    partner.tree = this_person.tree
-                    partner.first_name = cd['first_name']
-                    partner.last_name = cd['last_name']
-                    partner.birth_place = cd['birth_place']
-                    partner.birth_date = cd['birth_date']
-                    partner.death_place = cd['death_place']
-                    partner.death_date = cd['death_date']
-                    partner.sex = cd['sex']
-                    partner.save()
-
-                    family = Family()
-                    if this_person.sex == 'M':
-                        family.husband = this_person
-                        family.wife = partner
-                    else:
-                        family.husband = partner
-                        family.wife = this_person
-                    family.tree = this_person.tree
-                    family.save()
-
-                    return HttpResponse(status=204)
-                else:
-                    errors = {'name': 'A person needs at least a first name or last name!'}
-                    response = JsonResponse({'errors': errors}, status=400)
-                    return response   
-
-            else:
-                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            if not person_form.is_valid():
+                response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
                 return response
+            if not birth_form.is_valid():
+                response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+                return response
+            if not death_form.is_valid():
+                response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+                return response
+
+            cd = person_form.cleaned_data
+
+            partner = Individual()
+            partner.tree = this_person.tree
+            partner.first_name = cd['first_name']
+            partner.last_name = cd['last_name']
+            partner.sex = cd['sex']
+            partner.save()
+
+            bf_data = birth_form.cleaned_data
+            if bf_data['date'] or bf_data['place']:
+                birth_event = Event(indi=partner, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event.save()
+
+            df_data = death_form.cleaned_data
+            if df_data['date'] or df_data['place']:
+                death_event = Event(indi=partner, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event.save()
+
+            family = Family()
+            if this_person.sex == 'M':
+                family.husband = this_person
+                family.wife = partner
+            else:
+                family.husband = partner
+                family.wife = this_person
+            family.tree = this_person.tree
+            family.save()
+
+            return HttpResponse(status=204)
             
         elif request.POST.get('identifier') == 'add_existing_person':
             find_people_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
             dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
             for p in dropdown_persons:
                 find_people_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
-            form = AddPersonForm()
 
             if find_people_form.is_valid():
                 cd = find_people_form.cleaned_data
@@ -557,8 +623,8 @@ def add_person_as_partner(request, id):
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
                 
-                if (this_person.birth_year and partner.death_year and this_person.birth_year > partner.death_year) \
-                    or (this_person.death_year and partner.birth_year and partner.birth_year > this_person.death_year):
+                if (this_person.get_birth_year() and partner.get_death_year() and this_person.get_birth_year() > partner.get_death_year()) \
+                    or (this_person.get_death_year() and partner.get_birth_year() and partner.get_birth_year() > this_person.get_death_year()):
                     errors = {'not_alive_at_the_same_time': 'The selected people were not alive at the same time!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
@@ -575,16 +641,29 @@ def add_person_as_partner(request, id):
 
                 return HttpResponse(status=204)
             else:
-                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                response = JsonResponse({'errors': dict(find_people_form.errors)}, status=400)
                 return response
 
     else:
-        form = AddPersonForm()
+        person_form = PersonNamesForm()
+        person_form.fields['identifier'].initial = 'add_new_person'
+        birth_form = EventShortForm(prefix='birth')
+        death_form = EventShortForm(prefix='death')
         find_people_form = FindExistingPersonForm(tree_id=this_person.tree.id)
 
     title = f'Add Partner for {this_person}'
 
-    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': find_people_form, 'modal_title': title})
+    return render(
+        request, 
+        'genealogy/add_new_existing_person_modal.html', 
+        {
+            'person_form': person_form,
+            'birth_form': birth_form,
+            'death_form': death_form,
+            'search_form': find_people_form, 
+            'modal_title': title
+        }
+    )
 
 @login_required
 def search_people_for_dropdown(request, id):
@@ -615,14 +694,31 @@ def get_dropdown_persons(query, id):
     if query:
         db_query_items = []
         query_items = query.split(" ")
+        years = []
         for q in query_items:
             if q.isnumeric():
-                item = (Q(birth_year=q) | Q(death_year=q))
+                # If people write more than 2 years, ignore the third and more
+                if len(years) < 2:
+                    years.append(q)
             else:
                 item = (Q(first_name__icontains=q) | Q(last_name__icontains=q))
-            db_query_items.append(item)
+                db_query_items.append(item)
+        # With two years, the queries need to separated
+        if len(years) == 2:
+            birth_query = (Q(event__event_type='birth') & Q(event__year=min(years)))
+            death_query = (Q(event__event_type='death') & Q(event__year=max(years)))
+        elif len(years) == 1:
+            birth_query = ((Q(event__event_type='birth') & Q(event__year=q)) | (Q(event__event_type='death') & Q(event__year=q)))
+        if years:
+            db_query_items.append(birth_query)
         tree = Tree.objects.get(id=id)
-        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))[:10]
+        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))
+        # If two years included, also search for specific death year
+        if len(years) == 2:
+            persons = persons.filter(death_query)
+        
+        # Get first 10 results
+        persons = persons[:10]
 
     else:
         persons = Individual.objects.none()
@@ -644,47 +740,58 @@ def add_person_as_child(request, id):
 
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_child':
-            form = AddPersonChildForm(request.POST)
-            form.fields['family'].choices = family_choices
-            search_form = AddExistingPersonChildForm(tree_id=this_person.tree.id)
-            search_form.fields['family'].choices = family_choices
-            if form.is_valid():
-                cd = form.cleaned_data
-                child = Individual()
-                child.tree = this_person.tree
-                child.first_name = cd['first_name']
-                child.last_name = cd['last_name']
-                child.birth_place = cd['birth_place']
-                child.birth_date = cd['birth_date']
-                child.death_place = cd['death_place']
-                child.death_date = cd['death_date']
-                child.sex = cd['sex']
-                child.save()
+            person_form = PersonNamesFamilyForm(request.POST)
+            person_form.fields['family'].choices = family_choices
+            birth_form = EventShortForm(request.POST, prefix='birth')
+            death_form = EventShortForm(request.POST, prefix='death')
 
-                new_child = Child()
-                new_child.indi = child
-                if cd['family'] == 0:
-                    family = Family()
-                    if this_person.sex == 'M':
-                        family.husband = this_person
-                    else:
-                        family.wife = this_person
-                    family.tree = this_person.tree
-                    family.save()
-                else:
-                    family = Family.objects.get(id=cd['family'])
-                new_child.family = family
-                new_child.save()
-
-                return HttpResponse(status=204)
-
-            else:
-                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            if not person_form.is_valid():
+                response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
                 return response
+            if not birth_form.is_valid():
+                response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+                return response
+            if not death_form.is_valid():
+                response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+                return response
+            
+            cd = person_form.cleaned_data
+            child = Individual()
+            child.tree = this_person.tree
+            child.first_name = cd['first_name']
+            child.last_name = cd['last_name']
+            child.sex = cd['sex']
+            child.save()
+
+            bf_data = birth_form.cleaned_data
+            if bf_data['date'] or bf_data['place']:
+                birth_event = Event(indi=child, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event.save()
+
+            df_data = death_form.cleaned_data
+            if df_data['date'] or df_data['place']:
+                death_event = Event(indi=child, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event.save()
+
+            new_child = Child()
+            new_child.indi = child
+            if cd['family'] == 0:
+                family = Family()
+                if this_person.sex == 'M':
+                    family.husband = this_person
+                else:
+                    family.wife = this_person
+                family.tree = this_person.tree
+                family.save()
+            else:
+                family = Family.objects.get(id=cd['family'])
+            new_child.family = family
+            new_child.save()
+
+            return HttpResponse(status=204)
+
 
         elif request.POST.get('identifier') == 'add_existing_person':
-            form = AddPersonChildForm()
-            form.fields['family'].choices = family_choices
             search_form = AddExistingPersonChildForm(request.POST, tree_id=this_person.tree.id)
             search_form.fields['family'].choices = family_choices
             dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
@@ -730,14 +837,27 @@ def add_person_as_child(request, id):
                 return response
 
     else:
-        form = AddPersonChildForm()
-        form.fields['family'].choices = family_choices
+        person_form = PersonNamesFamilyForm()
+        person_form.fields['identifier'].initial = 'add_new_child'
+        person_form.fields['family'].choices = family_choices
+        birth_form = EventShortForm(prefix='birth')
+        death_form = EventShortForm(prefix='death')
         search_form = AddExistingPersonChildForm(tree_id=this_person.tree.id)
         search_form.fields['family'].choices = family_choices
 
     title = f'Add Child for {this_person}'
 
-    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': search_form, 'modal_title': title})
+    return render(
+        request, 
+        'genealogy/add_new_existing_person_modal.html', 
+        {
+            'person_form': person_form,
+            'birth_form': birth_form,
+            'death_form': death_form,
+            'search_form': search_form, 
+            'modal_title': title
+        }
+    )
 
 @login_required
 def add_person_as_parent(request, id, parent):
@@ -753,61 +873,73 @@ def add_person_as_parent(request, id, parent):
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
-            form = AddPersonForm(request.POST)
-            search_form = FindExistingPersonForm(tree_id=this_person.tree.id)
-            if form.is_valid():
-                cd = form.cleaned_data
+            person_form = PersonNamesForm(request.POST)
+            birth_form = EventShortForm(request.POST, prefix='birth')
+            death_form = EventShortForm(request.POST, prefix='death')
 
-                new_parent = Individual()
-                new_parent.tree = this_person.tree
-                new_parent.first_name = cd['first_name']
-                new_parent.last_name = cd['last_name']
-                new_parent.birth_place = cd['birth_place']
-                new_parent.birth_date = cd['birth_date']
-                new_parent.death_place = cd['death_place']
-                new_parent.death_date = cd['death_date']
-                new_parent.sex = cd['sex']
-                new_parent.save()
-
-                # Basically, already has a parent
-                
-                try:
-                    child = Child.objects.get(indi=this_person)
-                    if parent == 'father' and child.family.wife:
-                        child.family.husband = new_parent
-                        child.family.save()
-                    elif parent == 'mother' and child.family.husband:
-                        child.family.wife = new_parent
-                        child.family.save()
-                    else:
-                        errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
-                        response = JsonResponse({'errors': errors}, status=400)
-                        return response
-                except:
-                    family = Family()
-                    family.tree = this_person.tree
-                    if parent == 'father':
-                        family.husband = new_parent
-                    elif parent == 'mother':
-                        family.wife = new_parent
-                    else:
-                        errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
-                        response = JsonResponse({'errors': errors}, status=400)
-                        return response
-                    family.save()
-                    new_child = Child()
-                    new_child.tree = this_person.tree
-                    new_child.indi = this_person
-                    new_child.family = family
-                    new_child.save()
-
-                return HttpResponse(status=204)
-
-            else:
-                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            if not person_form.is_valid():
+                response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
                 return response
+            if not birth_form.is_valid():
+                response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+                return response
+            if not death_form.is_valid():
+                response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+                return response
+
+            cd = person_form.cleaned_data
+
+            new_parent = Individual()
+            new_parent.tree = this_person.tree
+            new_parent.first_name = cd['first_name']
+            new_parent.last_name = cd['last_name']
+            new_parent.sex = cd['sex']
+            new_parent.save()
+
+            bf_data = birth_form.cleaned_data
+            if bf_data['date'] or bf_data['place']:
+                birth_event = Event(indi=new_parent, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event.save()
+
+            df_data = death_form.cleaned_data
+            if df_data['date'] or df_data['place']:
+                death_event = Event(indi=new_parent, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event.save()
+
+            # Basically, already has a parent
+            try:
+                child = Child.objects.get(indi=this_person)
+                if parent == 'father' and child.family.wife:
+                    child.family.husband = new_parent
+                    child.family.save()
+                elif parent == 'mother' and child.family.husband:
+                    child.family.wife = new_parent
+                    child.family.save()
+                else:
+                    errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+            except:
+                family = Family()
+                family.tree = this_person.tree
+                if parent == 'father':
+                    family.husband = new_parent
+                elif parent == 'mother':
+                    family.wife = new_parent
+                else:
+                    errors = {'parenthood': 'Something went wrong! Does the person already have two parents?'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                family.save()
+                new_child = Child()
+                new_child.tree = this_person.tree
+                new_child.indi = this_person
+                new_child.family = family
+                new_child.save()
+
+            return HttpResponse(status=204)
+
         elif request.POST.get('identifier') == 'add_existing_person':
-            form = AddPersonForm()
             search_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
             dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
             for p in dropdown_persons:
@@ -890,18 +1022,33 @@ def add_person_as_parent(request, id, parent):
                     return HttpResponse(status=204)
                 
             else:
-                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                response = JsonResponse({'errors': dict(search_form.errors)}, status=400)
                 return response
     else:
-        form = AddPersonForm()
+        person_form = PersonNamesForm()
+        person_form.fields['identifier'].initial = 'add_new_person'
+        birth_form = EventShortForm(prefix='birth')
+        death_form = EventShortForm(prefix='death')
         search_form = FindExistingPersonForm(tree_id=this_person.tree.id)
 
     if parent == 'father':
         title = f'Add Father for {this_person}'
+        person_form.fields['sex'].initial = 'M'
     else:
         title = f'Add Mother for {this_person}'
+        person_form.fields['sex'].initial = 'F'
 
-    return render(request, 'genealogy/add_new_existing_person_modal.html', {'form': form, 'search_form': search_form, 'modal_title': title})
+    return render(
+        request, 
+        'genealogy/add_new_existing_person_modal.html', 
+        {
+            'person_form': person_form,
+            'birth_form': birth_form,
+            'death_form': death_form,
+            'search_form': search_form, 
+            'modal_title': title
+        }
+    )
 
 @login_required
 def add_person(request, id):
@@ -913,37 +1060,56 @@ def add_person(request, id):
         raise Http404("Tree does not exist.")
 
     if request.method == 'POST':
-        form = AddPersonForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            if cd['first_name'] or cd['last_name']:
-                new_person = Individual()
-                new_person.tree = this_tree
-                new_person.first_name = cd['first_name']
-                new_person.last_name = cd['last_name']
-                new_person.birth_place = cd['birth_place']
-                new_person.birth_date = cd['birth_date']
-                new_person.death_place = cd['death_place']
-                new_person.death_date = cd['death_date']
-                new_person.sex = cd['sex']
-                new_person.save()
+        person_form = PersonNamesForm(request.POST)
+        birth_form = EventShortForm(request.POST, prefix='birth')
+        death_form = EventShortForm(request.POST, prefix='death')
 
-                messages.success(request, 'New person added successfully!')
+        if not person_form.is_valid():
+            response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
+            return response
+        if not birth_form.is_valid():
+            response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+            return response
+        if not death_form.is_valid():
+            response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+            return response
+        
+        cd = person_form.cleaned_data
+        if cd['first_name'] or cd['last_name']:
+            new_person = Individual()
+            new_person.tree = this_tree
+            new_person.first_name = cd['first_name']
+            new_person.last_name = cd['last_name']
+            new_person.sex = cd['sex']
+            new_person.save()
 
-                return HttpResponse(status=204)
-            else:
-                errors = {'name': 'A person needs at least a first name or last name!'}
-                response = JsonResponse({'errors': errors}, status=400)
-                return response
-        else:
-            response = JsonResponse({'errors': dict(form.errors)}, status=400)
-            return response            
+            bf_data = birth_form.cleaned_data
+            if bf_data['date'] or bf_data['place']:
+                birth_event = Event(indi=new_person, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event.save()
+
+            df_data = death_form.cleaned_data
+            if df_data['date'] or df_data['place']:
+                death_event = Event(indi=new_person, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event.save()
+
+            messages.success(request, 'New person added successfully!')
+
+            return HttpResponse(status=204)
     else:
-        form = AddPersonForm()
+        person_form = PersonNamesForm()
+        birth_form = EventShortForm(prefix='birth')
+        death_form = EventShortForm(prefix='death')
 
-    title = 'Add New Person'
-
-    return render(request, 'genealogy/add_new_person_modal.html', {'form' : form, 'modal_title': title})
+    return render(
+        request,
+        'genealogy/add_new_person_modal.html', 
+        {
+            'person_form' : person_form,
+            'birth_form': birth_form,
+            'death_form': death_form
+        }
+    )
 
 @login_required
 def delete_tree(request, id):
@@ -1005,6 +1171,15 @@ def event_list(request, id):
             event_type_text = form.get_event_type_text()
 
             if any(e[0] == event_type for e in Event.EVENT_TYPES):
+                if this_person.has_birth_event() and event_type == 'birth':
+                    errors = {'has_birth': 'This person already has a birth event.'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+                if this_person.has_death_event() and event_type == 'death':
+                    errors = {'has_death': 'This person already has a death event.'}
+                    response = JsonResponse({'errors': errors}, status=400)
+                    return response
+
                 form = AddEventForm()
                 return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type_text})
             elif any(e[0] == event_type for e in FamilyEvent.EVENT_TYPES):

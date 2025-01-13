@@ -6,7 +6,18 @@
 </div>
 <div class="modal-body">
     <form hx-post="{{ request.path }}" class="modal-form" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleEditPersonRequest(event)">
-        {% crispy form %}
+        <div id="error-messages"></div>
+        {% crispy person_form %}
+        {% crispy birth_form %}
+        {% crispy death_form %}
+        <div class="row form-outline mb4">
+            <div class="col-md">
+                <button type="submit" name="submit" value="Save Changes" class="btn btn-primary">Save Changes</button>
+            </div>
+            <div class="col-md">
+                <button type="button" name="cancel" value="Cancel" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>     
     </form>
 </div>
 <script src="{% static 'js/edit_person_modal.js' %}"></script>

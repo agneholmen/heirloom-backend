@@ -12,7 +12,6 @@
     <div id="father-form" class="border rounded p-2">
     {% if father %}
         <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
-            {% csrf_token %}
             <span>{{ father.get_name_years }}</span>
             {% crispy father_form %}
             <button type="submit" class="btn btn-close ms-auto"></button>
@@ -31,7 +30,6 @@
     {% if mother %}
         <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
             <span>{{ mother.get_name_years }}</span>
-            {% csrf_token %}
             {% crispy mother_form %}
             <button type="submit" class="btn btn-close ms-auto"></button>
         </form>
@@ -50,7 +48,6 @@
             <div class="border rounded p-2 m-2">
                 <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
                     <span>{{ partner.0.get_name_years }}</span>
-                    {% csrf_token %}
                     {% crispy partner.1 %}
                     <button type="submit" class="btn btn-close ms-auto"></button>
                 </form>
@@ -70,7 +67,6 @@
             <div class="border rounded p-2 m-2">
                 <form hx-post="{{ request.path }}" class="modal-form d-flex" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleRemovedRelationshipRequest(event)">
                     <span>{{ child.0.get_name_years }}</span>
-                    {% csrf_token %}
                     {% crispy child.1 %}
                     <button type="submit" class="btn btn-close ms-auto"></button>
                 </form>

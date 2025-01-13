@@ -18,7 +18,7 @@
         <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
             hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
         <button class="btn btn-danger" type="button" disabled>Delete Person</button>
-        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add New Person</button>
+        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add Person</button>
         <ul class="dropdown-menu">
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
@@ -44,8 +44,8 @@
     </div>
     <h1>{{ person }}</h1>
     <p>Name: {{ person|default_if_none:"" }}</p>
-    <p>Birth: {{ person.birth_date|default_if_none:"" }} {{ person.birth_place|default_if_none:"" }}</p>
-    <p>Death: {{ person.death_date|default_if_none:"" }} {{ person.death_place|default_if_none:"" }}</p>
+    <p>Birth: {{ birth.date|default_if_none:"" }} {{ birth.place|default_if_none:"" }}</p>
+    <p>Death: {{ death.date|default_if_none:"" }} {{ death.place|default_if_none:"" }}</p>
     {% if person.death_cause %}
         <p>Death Cause: {{ person.death_cause }}</p>
     {% endif %}
