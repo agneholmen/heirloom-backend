@@ -23,8 +23,7 @@ class TreeAdmin(admin.ModelAdmin):
 @admin.register(Individual)
 class IndividualAdmin(admin.ModelAdmin):
     list_display = [
-        'id', 'indi_id', 'tree', 'first_name', 'last_name', 'sex', 'birth_date',
-        'birth_place', 'birth_year', 'death_date', 'death_place', 'death_cause', 'death_year'
+        'id', 'indi_id', 'tree', 'first_name', 'last_name', 'sex', 'death_cause'
     ]
     raw_id_fields = ['tree']
     list_filter = ['last_name']

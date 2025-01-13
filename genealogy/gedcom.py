@@ -446,13 +446,7 @@ def handle_uploaded_file(tree):
         ind.first_name = props.given_name
         ind.last_name = props.surname
         ind.sex = props.sex
-        ind.birth_date = props.birth['date']
-        ind.birth_place = props.birth['place']
-        ind.birth_year = df.extract_year(props.birth['date']) if props.birth['date'] else None
-        ind.death_date = props.death['date']
-        ind.death_place = props.death['place']
         ind.death_cause = props.death['cause']
-        ind.death_year = df.extract_year(props.death['date']) if props.death['date'] else None
 
         for e in props.events:
             event = Event()
