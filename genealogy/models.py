@@ -107,14 +107,22 @@ class Individual(models.Model):
         birth = self.get_birth_event()
         death = self.get_death_event()
 
-        if (birth and birth.year) and (death and death.year):
-            string += f" ({birth.year} - {death.year})"
-        elif birth and birth.year:
-            string += f" ({birth.year} - )"
-        elif death and death.year: 
-            string += f" ( - {death.year})"
+        string += self.get_years()
 
         return string
+    
+    def get_years(self):
+        birth_year = self.get_birth_year()
+        death_year = self.get_death_year()
+
+        if birth_year and death_year:
+            return f"({birth_year} - {death_year})"
+        elif birth_year:
+            return f"({birth_year} - )"
+        elif death_year:
+            return f"( - {death_year})"
+        else:
+            return ""
     
     def get_birth_date(self):
         birth_event = self.get_birth_event()

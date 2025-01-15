@@ -1297,7 +1297,9 @@ def view_tree(request, id):
     
     this_tree.number_of_individuals = Tree.objects.filter(id=id).annotate(number_of_individuals=Count("individuals")).values_list("number_of_individuals", flat=True).first()
 
-    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree', 'tree': this_tree})
+    first_person = Individual.objects.filter(tree=this_tree).first()
+
+    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree', 'tree': this_tree, 'first_person': first_person})
 
 def user_login(request):
     if request.method == 'POST':
