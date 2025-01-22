@@ -97,6 +97,20 @@ class Individual(models.Model):
         ]
         ordering = ['last_name']
 
+    def get_father(self):
+        try:
+            family = Family.objects.filter(children__indi=self).first()
+            return family.husband
+        except:
+            return None
+        
+    def get_mother(self):
+        try:
+            family = Family.objects.filter(children__indi=self).first()
+            return family.wife
+        except:
+            return None
+
     def get_name_years(self):
         string = ""
         if self.first_name:
@@ -104,12 +118,9 @@ class Individual(models.Model):
         if self.last_name:
             string += f" {self.last_name}"
 
-        birth = self.get_birth_event()
-        death = self.get_death_event()
+        string += f" {self.get_years()}"
 
-        string += self.get_years()
-
-        return string
+        return string.strip()
     
     def get_years(self):
         birth_year = self.get_birth_year()
@@ -186,14 +197,6 @@ class Individual(models.Model):
 
     def __str__(self):
         return " ".join(filter(None, [self.first_name, self.last_name]))
-    
-    def save(self, *args, **kwargs):
-        if self.birth_date:
-            self.birth_year = extract_year(self.birth_date)
-        if self.death_date:
-            self.death_year = extract_year(self.death_date)
-
-        super().save(*args, **kwargs)
     
 
 class Family(models.Model):

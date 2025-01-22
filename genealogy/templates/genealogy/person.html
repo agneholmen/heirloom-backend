@@ -4,6 +4,7 @@
 
 {% block content %}
     <div class="float-end">
+        <a href="{% url 'view_tree' person.tree.id person.id %}"><button class="btn btn-primary" type="button">View Family Tree</button></a>
         <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
         <ul class="dropdown-menu">
             <li>

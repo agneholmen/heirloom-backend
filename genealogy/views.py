@@ -5,6 +5,7 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, Q
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from .forms import (
     AddEventForm,
     AddExistingPersonChildForm,
@@ -39,7 +40,10 @@ from .date_functions import extract_year
 
 from functools import reduce
 
+import json
+
 NAMES_REPLACE = [
+    ["Annika", "Annicka"],
     ["Brita", "Britta"],
     ["Cajsa", "Kajsa", "Caisa"],
     ["Carl", "Karl"],
@@ -269,17 +273,13 @@ def person(request, id):
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
 
-    father = None
-    mother = None
+    father = this_person.get_father()
+    mother = this_person.get_mother()
     siblings = None
     half_siblings = None
     families = None
     children_objects = Child.objects.filter(indi=this_person)
     if children_objects:
-        # Needs fixing later to handle if it belongs to multiple families. For now I'll just take the first item.
-        father = children_objects[0].family.husband
-        mother = children_objects[0].family.wife
-
         siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id)
 
         half_sibling_queries = Q()
@@ -477,18 +477,14 @@ def edit_relationships(request, id):
             response = JsonResponse({'errors': dict(used_form.errors)}, status=400)
             return response
     else:
-        father = None
-        mother = None
+        father = this_person.get_father()
+        mother = this_person.get_mother()
         father_form = None
         mother_form = None
         children_forms = []
         partner_forms = []
         children_objects = Child.objects.filter(indi=this_person)
         if children_objects:
-            # Needs fixing later to handle if it belongs to multiple families. For now I'll just take the first item.
-            father = children_objects[0].family.husband
-            mother = children_objects[0].family.wife
-
             if father:
                 father_form = RemoveRelationshipForm(initial={'relationship_type': 'father', 'related_person_id': father.id})
             if mother:
@@ -870,7 +866,7 @@ def add_person_as_parent(request, id, parent):
 
     if parent not in ('father', 'mother'):
         raise Http404("Incorrect parent type.") 
-    
+
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
             person_form = PersonNamesForm(request.POST)
@@ -1287,7 +1283,7 @@ def get_tree_list(request):
     return render(request, 'genealogy/tree_list.html', {'trees': trees})
 
 @login_required
-def view_tree(request, id):
+def view_tree(request, id, person_id):
     try:
         this_tree = Tree.objects.get(id=id)
         if this_tree.user != request.user:
@@ -1296,10 +1292,98 @@ def view_tree(request, id):
         raise Http404("Tree does not exist.")
     
     this_tree.number_of_individuals = Tree.objects.filter(id=id).annotate(number_of_individuals=Count("individuals")).values_list("number_of_individuals", flat=True).first()
+    if this_tree.number_of_individuals == 0:
+        return render(
+            request, 
+            'genealogy/view_tree.html', 
+            {
+                'section': 'family_tree', 
+                'tree': this_tree
+            }
+        )
+    
+    if person_id == 0:
+        most_recent_person = Individual.objects.filter(tree=this_tree).order_by('id').first()
+        return redirect('view_tree', id=id, person_id=most_recent_person.id)
 
-    first_person = Individual.objects.filter(tree=this_tree).first()
+    try:
+        first_person = Individual.objects.get(id=person_id)
+        if first_person.tree != this_tree:
+            raise Http404("Individual not found in this tree.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
 
-    return render(request, 'genealogy/view_tree.html', {'section': 'family_tree', 'tree': this_tree, 'first_person': first_person})
+    generations = 3
+
+    people_data = {
+        'first_name': first_person.first_name,
+        'last_name': first_person.last_name,
+        'id': first_person.id,
+        'image': '',
+        'years': first_person.get_years(),
+        'person_url': reverse('person', kwargs={'id': first_person.id})
+    }
+
+    people_data['parents'] = tree_get_parents(first_person, 1, generations, id)
+
+    return render(
+        request, 
+        'genealogy/view_tree.html', 
+        {
+            'section': 'family_tree', 
+            'tree': this_tree, 
+            'first_person': first_person, 
+            'people': json.dumps(people_data)
+        }
+    )
+
+def tree_get_parents(current_person, generation, max_generation, tree_id):
+    if generation == max_generation:
+        return []
+
+    parents = []
+    father = current_person.get_father()
+    mother = current_person.get_mother()
+    if father:
+        parents.append({
+            'first_name': father.first_name,
+            'last_name': father.last_name,
+            'id': father.id,
+            'image': '',
+            'years': father.get_years(),
+            'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': father.id}),
+            'parent_type': 'father',
+            'parents': tree_get_parents(father, generation + 1, max_generation, tree_id)
+        })
+    else:
+        parents.append({
+            'id': 0,
+            'child_id': current_person.id,
+            'person_url': reverse('add_person_as_parent', kwargs={'id': current_person.id, 'parent': 'father'}),
+            'parent_type': 'father',
+            'parents': []
+        })
+    if mother:
+        parents.append({
+            'first_name': mother.first_name,
+            'last_name': mother.last_name,
+            'id': mother.id,
+            'image': '',
+            'years': mother.get_years(),
+            'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': mother.id}),
+            'parent_type': 'mother',
+            'parents': tree_get_parents(mother, generation + 1, max_generation, tree_id)
+        })
+    else:
+        parents.append({
+            'id': 0,
+            'child_id': current_person.id,
+            'person_url': reverse('add_person_as_parent', kwargs={'id': current_person.id, 'parent': 'mother'}),
+            'parent_type': 'mother',
+            'parents': []
+        })
+
+    return parents
 
 def user_login(request):
     if request.method == 'POST':

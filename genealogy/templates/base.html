@@ -7,6 +7,9 @@
     {% load bootstrap_icons %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/tree_style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    {% block javascript_data %}{% endblock %}
 </head>
 <body>
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
@@ -55,12 +58,13 @@
         </div>
     {% endif %}
     <div id="content">
-        <div class="container mt-5 bg-light">
+        <div class="container mt-5">
             {% block content %}
             {% endblock %}
         </div>
     </div>
     <script src="https://unpkg.com/htmx.org@2.0.3"></script>
     <script src="{% static 'js/base.js' %}"></script>
+    {% block javascript_include %}{% endblock %}
 </body>
 </html>

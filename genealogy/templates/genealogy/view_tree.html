@@ -2,19 +2,36 @@
 
 {% block title %}View Tree{% endblock title %}
 
+{% block javascript_data %}
+    {% if people %}
+        <script>
+            var familyData = {{ people|safe }};
+        </script>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
-    <p>On this page you will be able to view your family tree.</p>
     {% if tree.number_of_individuals == 0 %}
         <p>You don't have any individuals in your tree.</p>
         <p>Add one by clicking here:</p>
         <button type="button" class="btn btn-primary" hx-get="{% url 'add_person' tree.id %}" 
-        hx-target="#add-person-modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-        data-bs-target="#add-person-modal">Add First Person</button>
+        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+        data-bs-target="#modal">Add First Person</button>
+    {% else %}
+        <div id="tree-container" style="position: relative;">
+            <svg width="1000" height="1000" style="position: absolute;" id="tree-svg-container">
+            </svg>
+        </div>
+    </div>
     {% endif %}
-    <div class="modal fade modal-blur" tabindex="-1" id="add-person-modal">
+    <div class="modal fade modal-blur" tabindex="-1" id="modal">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="add-person-modal-content" hx-target="this">
+            <div class="modal-content" id="modal-content" hx-target="this">
             </div>
         </div>
     </div>
 {% endblock content %}
+{% block javascript_include %}
+    {% load static %}
+    <script src="{% static 'js/generate_tree.js' %}"></script>
+{% endblock %}
