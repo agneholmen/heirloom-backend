@@ -1,9 +1,14 @@
 function handleEditPersonRequest(evt) {
     if(evt.detail.xhr.status == 204) {
-        var modal = bootstrap.Modal.getInstance(document.getElementById('modal'));
-        modal.hide();
-        var modal_inner = document.getElementById('modal-content');
-        modal_inner.innerHTML = '';
+        // This should be improved in the future
+        if (window.location.pathname.includes('genealogy/search')) {
+            var modal = bootstrap.Modal.getInstance(document.getElementById('modal'));
+            modal.hide();
+            var modal_inner = document.getElementById('modal-content');
+            modal_inner.innerHTML = '';
+        } else {
+            location.reload();
+        }
     } else if(evt.detail.xhr.status == 400) {
         const jsonResponse = evt.detail.xhr.response;
         const responseData = JSON.parse(jsonResponse);

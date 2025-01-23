@@ -5,6 +5,7 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, Q
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
+from django.templatetags.static import static
 from django.urls import reverse
 from .forms import (
     AddEventForm,
@@ -1319,7 +1320,7 @@ def view_tree(request, id, person_id):
         'first_name': first_person.first_name,
         'last_name': first_person.last_name,
         'id': first_person.id,
-        'image': '',
+        'image': get_default_image(first_person.sex),
         'years': first_person.get_years(),
         'person_url': reverse('person', kwargs={'id': first_person.id})
     }
@@ -1349,7 +1350,7 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'first_name': father.first_name,
             'last_name': father.last_name,
             'id': father.id,
-            'image': '',
+            'image': get_default_image(father.sex),
             'years': father.get_years(),
             'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': father.id}),
             'parent_type': 'father',
@@ -1368,7 +1369,7 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'first_name': mother.first_name,
             'last_name': mother.last_name,
             'id': mother.id,
-            'image': '',
+            'image': get_default_image(mother.sex),
             'years': mother.get_years(),
             'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': mother.id}),
             'parent_type': 'mother',
@@ -1384,6 +1385,14 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
         })
 
     return parents
+
+def get_default_image(sex):
+    if sex == 'M':
+        return static('images/male.png')
+    elif sex == 'F':
+        return static('images/female.png')
+    else:
+        return static('images/unknown.png')
 
 def user_login(request):
     if request.method == 'POST':
