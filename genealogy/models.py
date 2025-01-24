@@ -361,10 +361,17 @@ def handle_family_cleanup(sender, instance, **kwargs):
     families = Family.objects.filter(models.Q(husband=instance) | models.Q(wife=instance))
     for family in families:
         has_children = Child.objects.filter(family=family).exists()
+        # Family with only one person and no children
         if not has_children:
             family.delete()
+        # Family with children and only one parent
         if (family.husband == instance and not family.wife) or (family.wife == instance and not family.husband):
             family.delete()
+
+    children = Child.objects.filter(indi=instance)
+    for child in children:
+        if (child.family.husband and not child.family.wife) or (child.family.wife and not child.family.husband) and child.family.children.count() == 1:
+            child.family.delete()
 
 # Removes the GEDCOM file when you remove a Tree instance
 @receiver(post_delete, sender=Tree)

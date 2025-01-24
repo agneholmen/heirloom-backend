@@ -327,8 +327,7 @@ def person(request, id):
                             'place': c_birth.place, 
                             'id': child.indi.id,
                             'model_type': 'relative',
-                            'family_member': child.indi,
-                            'years_since_birth': c_birth.year - birth.year
+                            'family_member': child.indi
                         }
                     )
                 if c_death and death and c_death.year < death.year:
@@ -342,8 +341,7 @@ def person(request, id):
                             'place': c_death.place, 
                             'id': child.indi.id,
                             'model_type': 'relative',
-                            'family_member': child.indi,
-                            'years_since_birth': c_death.year - birth.year
+                            'family_member': child.indi
                         }
                     )
 
@@ -366,8 +364,7 @@ def person(request, id):
                             'place': p_death.place,
                             'id': family['partner'].id,
                             'model_type': 'relative',
-                            'family_member': family['partner'],
-                            'years_since_birth': p_death.year - birth.year
+                            'family_member': family['partner']
                         }
                     )
 
@@ -386,8 +383,7 @@ def person(request, id):
                     'event_type_full': e.get_event_type_display(),
                     'place': e.place, 
                     'id': e.id, 
-                    'model_type': 'basic',
-                    'years_since_birth': e.year - birth.year if birth else None
+                    'model_type': 'basic'
                 }
             if new_event['year']:
                 timeline_events.append(new_event)
@@ -403,8 +399,7 @@ def person(request, id):
                 'family_member': e.family.husband if e.family.wife == this_person else e.family.wife,
                 'place': e.place, 
                 'id': e.id, 
-                'model_type': 'family',
-                'years_since_birth': birth.year if birth else None
+                'model_type': 'family'
             }
         if new_event['year']:
             timeline_events.append(new_event)
@@ -426,8 +421,7 @@ def person(request, id):
                     'place': s_birth.place, 
                     'id': s.indi.id,
                     'model_type': 'relative',
-                    'family_member': s.indi,
-                    'years_since_birth': s_birth.year - birth.year
+                    'family_member': s.indi
                 }
             )
         if s_death and death and s_death.year < death.year and not (birth and s_death.year < birth.year):
@@ -441,8 +435,7 @@ def person(request, id):
                     'place': s_death.place,
                     'id': s.indi.id,
                     'model_type': 'relative',
-                    'family_member': s.indi,
-                    'years_since_birth': s_death.year - birth.year
+                    'family_member': s.indi
                 }
             )
 
@@ -459,8 +452,7 @@ def person(request, id):
                     'place': f_death.place,
                     'id': father.id,
                     'model_type': 'relative',
-                    'family_member': father,
-                    'years_since_birth': f_death.year - birth.year
+                    'family_member': father
                 }
             )
     if mother:
@@ -476,8 +468,7 @@ def person(request, id):
                     'place': m_death.place,
                     'id': mother.id,
                     'model_type': 'relative',
-                    'family_member': mother,
-                    'years_since_birth': m_death.year - birth.year
+                    'family_member': mother
                 }
             )
 
@@ -491,8 +482,7 @@ def person(request, id):
                                 'event_type_full': 'Birth', 
                                 'place': birth.place, 
                                 'id': birth.id, 
-                                'model_type': 'basic', 
-                                'years_since_birth': 0
+                                'model_type': 'basic'
                                 }
                             )
     if death:
@@ -505,8 +495,7 @@ def person(request, id):
                 'event_type_full': 'Death',
                 'place': death.place, 
                 'id': death.id, 
-                'model_type': 'basic',
-                'years_since_birth': death.year - birth.year if birth else None
+                'model_type': 'basic'
             }
         )
 
@@ -852,15 +841,25 @@ def add_person_as_partner(request, id, family_id):
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
                 
-                family = Family()
-                if this_person.sex == 'M':
-                    family.husband = this_person
-                    family.wife = partner
-                else:
-                    family.husband = partner
-                    family.wife = this_person
-                family.tree = this_person.tree
-                family.save()
+                try:
+                    family = Family.objects.get(id=family_id)
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.save()
+                except:
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
 
                 return HttpResponse(status=204)
             else:
