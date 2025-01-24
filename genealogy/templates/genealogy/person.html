@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 
 {% block title %}{{ person.get_name_years }}{% endblock title %}
+{% block css_include %}
+{% load static %}
+{% load bootstrap_icons %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/person.css' %}">
+{% endblock %}
 
 {% block content %}
-    <div class="float-end">
+    <div class="person-options">
         <a href="{% url 'view_tree' person.tree.id person.id %}"><button class="btn btn-primary" type="button">View Family Tree</button></a>
         <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
         <ul class="dropdown-menu">
@@ -24,7 +29,7 @@
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                 data-bs-target="#modal">Child</a></li>
-            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id %}" 
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id 0 %}" 
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                 data-bs-target="#modal">Partner</a></li>
             {% if father %}
@@ -43,48 +48,152 @@
             {% endif %}
         </ul>
     </div>
-    <h1>{{ person }}</h1>
-    <p>Name: {{ person|default_if_none:"" }}</p>
-    <p>Birth: {{ birth.date|default_if_none:"" }} {{ birth.place|default_if_none:"" }}</p>
-    <p>Death: {{ death.date|default_if_none:"" }} {{ death.place|default_if_none:"" }}</p>
-    {% if person.death_cause %}
-        <p>Death Cause: {{ person.death_cause }}</p>
-    {% endif %}
-    <h2>Parents</h2>
-    <p>Father: {% if father %}<a href="{% url 'person' father.id %}">{{ father.get_name_years }}</a>{% else %}-{% endif %}</p>
-    <p>Mother: {% if mother %}<a href="{% url 'person' mother.id %}">{{ mother.get_name_years }}</a>{% else %}-{% endif %}</p>
-    <h2>Siblings</h2>
-    {% if siblings %}
-        <ul>
-        {% for sibling in siblings %}
-            <li><p><a href="{% url 'person' sibling.indi.id %}">{{ sibling.indi.get_name_years }}</a></p></li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No siblings</p>
-    {% endif %}
-    {% if half_siblings %}
-        <h2>Half-siblings</h2>
-        <ul>
-        {% for half_sibling in half_siblings %}
-            <li><p><a href="{% url 'person' half_sibling.indi.id %}">{{ half_sibling.indi.get_name_years }}</a></p></li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-    {% if families %}
-        <h2>Families</h2>
-        {% for family in families %}
-            <h3>Family {{forloop.counter }}</h3>
-            <p>Partner: {% if family.partner %}<a href="{% url 'person' family.partner.id %}">{{ family.partner.get_name_years }}</a>{% else %}-{% endif %}</p>
-            {% if family.children %}
-                <p>Children:</p>
-                <ul>
-                {% for child in family.children %}
-                    <li><p><a href="{% url 'person' child.indi.id %}">{{ child.indi.get_name_years }}</a></p></li>
+    <div class="person-container">
+        <div class="profile-header">
+            <div class="profile-picture">
+                <img src="{{ person_image }}" alt="Profile Picture" class="profile-picture-image" />
+            </div>
+            <div class="profile-details">
+                <h1>{{ person|default_if_none:"" }}</h1>
+                <p>Birth: {{ birth.date|default_if_none:"" }} {{ birth.place|default_if_none:"" }}</p>
+                <p>Death: {{ death.date|default_if_none:"" }} {{ death.place|default_if_none:"" }}</p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="left-column">
+                <div class="left-column-header">
+                    <h2>Timeline</h2>
+                    <div class="toggle-events">
+                        <input type="checkbox" id="toggle-relatives-events" class="form-check-input" checked>
+                        <label for="toggle-relatives-events" class="form-check-label">
+                            Include relatives' events
+                        </label>
+                    </div>
+                </div>
+                <div class="timeline">
+                {% for event in events %}
+                    <div class="timeline-event{% if event.model_type == 'relative' %} timeline-event-relative{% endif %}">
+                        <span class="event-icon">{{ event.icon }}</span>
+                        <div class="event-details">
+                            <div>
+                                {% if event.model_type == 'basic' %}
+                                    <strong>{{ event.event_type_full }}</strong>
+                                {% else %}
+                                    <strong>{{ event.event_type_full }} - <a href="{% url 'person' event.family_member.id %}">{{ event.family_member }}</a></strong>
+                                {% endif %}
+                                <p>{{ event.date|default_if_none:"" }}</p>
+                                <p>{{ event.place|default_if_none:"" }}</p>
+                                <p>{{ event.description|default_if_none:"" }}</p>
+                            </div>
+                            {% if event.model_type == 'basic' %}
+                                <button class=" btn btn-primary edit-event" hx-get="{% url 'edit_event' event.id %}" 
+                                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" 
+                                    data-bs-target="#modal">Edit</button>
+                            {% elif event.model_type == 'family' %}
+                                <button class=" btn btn-primary edit-event" hx-get="{% url 'edit_family_event' event.id %}" 
+                                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" 
+                                    data-bs-target="#modal">Edit</button>
+                            {% endif %}
+                        </div>
+                    </div>
                 {% endfor %}
-                </ul>
-            {% endif %}
-        {% endfor %}
-    {% endif %}
+                </div>
+            </div>
+            <div class="right-column">
+                <h2>Related People</h2>
+                <div class="category">
+                    <h3>Parents</h3>
+                    <strong>Father</strong>
+                    {% if father %}
+                        <a href="{% url 'person' father.id %}" class="person-card">{{ father.get_name_years }}</a>
+                    {% else %}
+                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+                        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                        data-bs-target="#modal">
+                            <span>Add father</span>
+                            {% bs_icon 'person-add' size="1.8em" color="#198754" %}
+                        </a>
+                    {% endif %}
+                    <strong>Mother</strong>
+                    {% if mother %}
+                        <a href="{% url 'person' mother.id %}" class="person-card">{{ mother.get_name_years }}</a>
+                    {% else %}
+                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+                        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                        data-bs-target="#modal">
+                            <span>Add mother</span>
+                            {% bs_icon 'person-add' size="1.8em" color="#198754" %}
+                        </a>
+                    {% endif %}
+                </div>
+                {% if siblings %}
+                    <div class="category">
+                        <h3>Siblings</h3>
+                        {% for sibling in siblings  %}
+                            <a href="{% url 'person' sibling.indi.id %}" class="person-card">{{ sibling.indi.get_name_years }}</a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% if half_siblings %}
+                    <div class="category">
+                        <h3>Half-siblings</h3>
+                        {% for half_sibling in half_siblings %}
+                            <a href="{% url 'person' half_sibling.indi.id %}" class="person-card">{{ half_sibling.indi.get_name_years }}</a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="category">
+                    <h3>Families</h3>
+                    {% if families %}
+                        {% for family in families %}
+                            <div class="family-group">
+                                <strong>Partner</strong>
+                                {% if family.partner %}
+                                    <a href="{% url 'person' family.partner.id %}" class="person-card">{{ family.partner.get_name_years }}</a>
+                                {% else %}
+                                    <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_partner' person.id family.id %}" 
+                                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                                    data-bs-target="#modal">
+                                        <span>Add partner</span>
+                                        {% bs_icon 'person-add' size="1.8em" color="#198754" %}
+                                    </a>
+                                {% endif %}
+                                <strong>Children</strong>
+                                {% if family.children %}
+                                    {% for child in family.children %}
+                                        <a href="{% url 'person' child.indi.id %}" class="person-card">{{ child.indi.get_name_years }}</a>
+                                    {% endfor %}
+                                {% else %}
+                                    <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_child' person.id %}" 
+                                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                                    data-bs-target="#modal">
+                                        <span>Add child</span>
+                                        {% bs_icon 'person-add' size="1.8em" color="#198754" %}
+                                    </a>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_partner' person.id 0 %}" 
+                        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                        data-bs-target="#modal">
+                            <span>Add partner</span>
+                            {% bs_icon 'person-add' size="1.8em" color="#198754" %}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
     {% include 'genealogy/modal_container.html' %}
+    {% block javascript_include %}
+    <script>
+        document.getElementById('toggle-relatives-events').addEventListener('change', function() {
+            const events = document.querySelectorAll('.timeline-event-relative');
+            events.forEach(event => {
+                event.style.display = this.checked ? 'block' : 'none';
+            });
+        });
+    </script>
+    {% endblock javascript_include %}
 {% endblock content %}

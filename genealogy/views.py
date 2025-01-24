@@ -12,7 +12,9 @@ from .forms import (
     AddExistingPersonChildForm,
     AddFamilyEventForm,
     EventShortForm,
+    EditEventForm,
     EditTreeForm,
+    EditFamilyEventForm,
     FindExistingPersonForm,
     LoginForm,
     NewTreeForm,
@@ -40,6 +42,8 @@ from . import gedcom
 from .date_functions import extract_year
 
 from functools import reduce
+
+from itertools import chain
 
 import json
 
@@ -274,6 +278,9 @@ def person(request, id):
     except Individual.DoesNotExist:
         raise Http404("Individual does not exist.")
 
+    birth = this_person.get_birth_event()
+    death = this_person.get_death_event()
+
     father = this_person.get_father()
     mother = this_person.get_mother()
     siblings = None
@@ -292,38 +299,239 @@ def person(request, id):
         half_sibling_families = Family.objects.filter(half_sibling_queries)
         half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person)
     
+    timeline_events = []
+
     family_objects = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
     if family_objects:
         families = []
         for f in family_objects:
             family = {
                 'partner': None, 
-                'children': []
+                'children': [],
+                'id': f.id
             }
             family['children'] = Child.objects.filter(family=f)
+            # Add timeline events for children
+            for child in family['children']:
+                c_birth = child.indi.get_birth_event()
+                c_death = child.indi.get_death_event()
+                timeline_events.append(
+                    {
+                        'year': c_birth.year, 
+                        'description': "", 
+                        'date': c_birth.date,
+                        'event_type': 'birth', 
+                        'event_type_full': f"Birth of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
+                        'place': c_birth.place, 
+                        'id': child.indi.id,
+                        'model_type': 'relative',
+                        'family_member': child.indi,
+                        'years_since_birth': c_birth.year - birth.year
+                    }
+                )
+                if c_death and death and c_death.year < death.year:
+                    timeline_events.append(
+                        {
+                            'year': c_death.year, 
+                            'description': "", 
+                            'date': c_death.date,
+                            'event_type': 'birth', 
+                            'event_type_full': f"Death of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
+                            'place': c_death.place, 
+                            'id': child.indi.id,
+                            'model_type': 'relative',
+                            'family_member': child.indi,
+                            'years_since_birth': c_death.year - birth.year
+                        }
+                    )
+
             if f.husband == this_person and f.wife:
                 family['partner'] = f.wife
             if f.wife == this_person and f.husband:
                 family['partner'] = f.husband
+            
+            # Add timeline events for partner
+            if family['partner']:
+                p_death = family['partner'].get_death_event()
+                if p_death and death and p_death.year < death.year:
+                    timeline_events.append(
+                        {
+                            'year': p_death.year, 
+                            'description': "", 
+                            'date': p_death.date,
+                            'event_type': 'death', 
+                            'event_type_full': f"Death of {'husband' if family['partner'].sex == 'M' else 'wife' if family['partner'].sex == 'F' else 'partner'}",
+                            'place': p_death.place,
+                            'id': family['partner'].id,
+                            'model_type': 'relative',
+                            'family_member': family['partner'],
+                            'years_since_birth': p_death.year - birth.year
+                        }
+                    )
 
             families.append(family)
 
-    birth = this_person.get_birth_event()
-    death = this_person.get_death_event()
-        
+    events = Event.objects.filter(indi=this_person).order_by('year')
+    family_events = FamilyEvent.objects.filter(family__in=family_objects).order_by('year')
+
+    for e in events:
+        if e.event_type not in ['birth', 'death']:
+            timeline_events.append(
+                {
+                    'year': e.year, 
+                    'description': e.description,
+                    'date': e.date,
+                    'event_type': e.event_type, 
+                    'event_type_full': e.get_event_type_display(),
+                    'place': e.place, 
+                    'id': e.id, 
+                    'model_type': 'basic',
+                    'years_since_birth': e.year - birth.year if birth else None
+                }
+            )
+    for e in family_events:
+        timeline_events.append(
+            {
+                'year': e.year, 
+                'description': e.description, 
+                'date': e.date,
+                'event_type': e.event_type, 
+                'event_type_full': e.get_event_type_display(),
+                'family_member': e.family.husband if e.family.wife == this_person else e.family.wife,
+                'place': e.place, 
+                'id': e.id, 
+                'model_type': 'family',
+                'years_since_birth': birth.year if birth else None
+            }
+        )
+
+    # Add events related to relatives
+    for s in chain(siblings or [], half_siblings or []):
+        s_birth = s.indi.get_birth_event()
+        s_death = s.indi.get_death_event()
+        if s_birth and birth and s_birth.year > birth.year and not (death and s_birth.year > death.year):
+            timeline_events.append(
+                {
+                    'year': s_birth.year, 
+                    'description': "", 
+                    'date': s_birth.date,
+                    'event_type': 'birth', 
+                    'event_type_full': f"Birth of {'brother' if s.indi.sex == 'M' else 'sister' if s.indi.sex == 'F' else 'sibling'}",
+                    'place': s_birth.place, 
+                    'id': s.indi.id,
+                    'model_type': 'relative',
+                    'family_member': s.indi,
+                    'years_since_birth': s_birth.year - birth.year
+                }
+            )
+        if s_death and death and s_death.year < death.year and not (birth and s_death.year < birth.year):
+            timeline_events.append(
+                {
+                    'year': s_death.year, 
+                    'description': "", 
+                    'date': s_death.date,
+                    'event_type': 'death', 
+                    'event_type_full': f"Death of {'brother' if s.indi.sex == 'M' else 'sister' if s.indi.sex == 'F' else 'sibling'}",
+                    'place': s_death.place,
+                    'id': s.indi.id,
+                    'model_type': 'relative',
+                    'family_member': s.indi,
+                    'years_since_birth': s_death.year - birth.year
+                }
+            )
+
+    if father:
+        f_death = father.get_death_event()
+        if not (f_death and death and f_death.year > death.year) and f_death:
+            timeline_events.append(
+                {
+                    'year': f_death.year, 
+                    'description': "", 
+                    'date': f_death.date,
+                    'event_type': 'death', 
+                    'event_type_full': "Death of father",
+                    'place': f_death.place,
+                    'id': father.id,
+                    'model_type': 'relative',
+                    'family_member': father,
+                    'years_since_birth': f_death.year - birth.year
+                }
+            )
+    if mother:
+        m_death = mother.get_death_event()
+        if not (m_death and death and m_death.year > death.year) and m_death:
+            timeline_events.append(
+                {
+                    'year': m_death.year or None,
+                    'description': "", 
+                    'date': m_death.date,
+                    'event_type': 'death', 
+                    'event_type_full': "Death of mother",
+                    'place': m_death.place,
+                    'id': mother.id,
+                    'model_type': 'relative',
+                    'family_member': mother,
+                    'years_since_birth': m_death.year - birth.year
+                }
+            )
+
+    timeline_events.sort(key=lambda x: x['year'])
+    if birth:
+        timeline_events.insert(0, 
+                               {'year': birth.year, 
+                                'date': birth.date,
+                                'description': birth.description, 
+                                'event_type': 'birth',
+                                'event_type_full': 'Birth', 
+                                'place': birth.place, 
+                                'id': birth.id, 
+                                'model_type': 'basic', 
+                                'years_since_birth': 0
+                                }
+                            )
+    if death:
+        timeline_events.append(
+            {
+                'year': death.year, 
+                'date': death.date,
+                'description': death.description, 
+                'event_type': 'death', 
+                'event_type_full': 'Death',
+                'place': death.place, 
+                'id': death.id, 
+                'model_type': 'basic',
+                'years_since_birth': death.year - birth.year if birth else None
+            }
+        )
+
+    # More should be added
+    for event in timeline_events:
+        if event['event_type'] == 'birth':
+            event['icon'] = '🎂'
+        elif event['event_type'] == 'death':
+            event['icon'] = '☠️'
+        elif event['event_type'] == 'marriage':
+            event['icon'] = '💍'
+        elif event['event_type'] == 'residence':
+            event['icon'] = '🏠'
+        else:
+            event['icon'] = '📆'
+
     return render(
         request,
         'genealogy/person.html',
         {
             'section': 'search',
             'person': this_person,
+            'person_image': get_default_image(this_person.sex),
             'birth': birth,
             'death': death,
             'father': father,
             'mother': mother,
             'siblings': siblings,
             'half_siblings': half_siblings,
-            'families': families
+            'families': families,
+            'events': timeline_events
         }
     )
 
@@ -495,7 +703,7 @@ def edit_relationships(request, id):
         for c in children:
             child_form = RemoveRelationshipForm(initial={'relationship_type': 'child', 'related_person_id': c.indi.id})
             children_forms.append((c.indi, child_form))
-        families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
+        families = Family.objects.filter((Q(husband=this_person) & ~Q(wife=None)) | (Q(wife=this_person) & ~Q(husband=None)))
         for f in families:
             if f.husband == this_person:
                 partner_form = RemoveRelationshipForm(initial={'relationship_type': 'partner', 'related_person_id': f.wife.id})
@@ -542,7 +750,7 @@ def delete_person(request, id):
         return render(request, 'genealogy/delete_person_modal.html', {'person': this_person})
 
 @login_required
-def add_person_as_partner(request, id):
+def add_person_as_partner(request, id, family_id):
     try:
         this_person = Individual.objects.get(id=id)
         if this_person.tree.user != request.user:
@@ -585,15 +793,25 @@ def add_person_as_partner(request, id):
                 death_event = Event(indi=partner, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
-            family = Family()
-            if this_person.sex == 'M':
-                family.husband = this_person
-                family.wife = partner
-            else:
-                family.husband = partner
-                family.wife = this_person
-            family.tree = this_person.tree
-            family.save()
+            try:
+                family = Family.objects.get(id=family_id)
+                if this_person.sex == 'M':
+                    family.husband = this_person
+                    family.wife = partner
+                else:
+                    family.husband = partner
+                    family.wife = this_person
+                family.save()
+            except:
+                family = Family()
+                if this_person.sex == 'M':
+                    family.husband = this_person
+                    family.wife = partner
+                else:
+                    family.husband = partner
+                    family.wife = this_person
+                family.tree = this_person.tree
+                family.save()
 
             return HttpResponse(status=204)
             
@@ -681,7 +899,8 @@ def get_families(person):
         this_person = Individual.objects.get(id=person)
         families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
         family_choices = [(family.id, family) for family in families]
-        family_choices.append((0, f'{this_person} and unknown partner'))
+        if not Family.objects.filter((Q(husband=this_person) & Q(wife=None)) | (Q(wife=this_person) & Q(husband=None))).exists():
+            family_choices.append((0, f'{this_person} and unknown partner'))
     except:
         family_choices = []
 
@@ -733,7 +952,8 @@ def add_person_as_child(request, id):
     
     families = Family.objects.filter(Q(wife=this_person) | Q(husband=this_person))
     family_choices = [(family.id, family) for family in families]
-    family_choices.append((0, f'{this_person} and unknown partner'))
+    if not Family.objects.filter((Q(husband=this_person) & Q(wife=None)) | (Q(wife=this_person) & Q(husband=None))).exists():
+        family_choices.append((0, f'{this_person} and unknown partner'))
 
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_child':
@@ -829,7 +1049,6 @@ def add_person_as_child(request, id):
 
                 return HttpResponse(status=204)
             else:
-                print(search_form.errors)
                 response = JsonResponse({'errors': dict(search_form.errors)}, status=400)
                 return response
 
@@ -1178,7 +1397,7 @@ def event_list(request, id):
                     return response
 
                 form = AddEventForm()
-                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type_text})
+                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type, event_type_text: event_type_text})
             elif any(e[0] == event_type for e in FamilyEvent.EVENT_TYPES):
                 form = AddFamilyEventForm()
                 families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person) & Q(husband__isnull=False) & Q(wife__isnull=False))
@@ -1189,7 +1408,7 @@ def event_list(request, id):
 
                 form.fields['family'].choices = [(family.id, family) for family in families]
 
-                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type_text})
+                return render(request, 'genealogy/add_event_modal.html', {'person': this_person, 'form': form, 'event_type': event_type, event_type_text: event_type_text})
             else:
                 errors = {'event_type': 'Invalid event type!'}
                 response = JsonResponse({'errors': errors}, status=400)
@@ -1218,11 +1437,11 @@ def add_event(request, id, event_type):
             form = AddEventForm(request.POST)
             if form.is_valid():
                 cd = form.cleaned_data
-                if cd['date'] and this_person.birth_year and extract_year(cd['date']) < this_person.birth_year:
+                if cd['date'] and this_person.get_birth_year() and extract_year(cd['date']) < this_person.get_birth_year():
                     errors = {'date': 'Event date is before birth date!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
-                if cd['date'] and this_person.death_year and extract_year(cd['date']) > this_person.death_year:
+                if cd['date'] and this_person.get_death_year() and extract_year(cd['date']) > this_person.get_death_year():
                     errors = {'date': 'Event date is after death date!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
@@ -1232,6 +1451,7 @@ def add_event(request, id, event_type):
                 event.event_type = event_type
                 event.date = cd['date']
                 event.place = cd['place']
+                event.description = cd['description']
                 event.save()
 
                 return HttpResponse(status=204)
@@ -1245,11 +1465,11 @@ def add_event(request, id, event_type):
             form.fields['family'].choices = [(family.id, family) for family in families]
             if form.is_valid():
                 cd = form.cleaned_data
-                if cd['date'] and this_person.birth_year and extract_year(cd['date']) < this_person.birth_year:
+                if cd['date'] and this_person.get_birth_year() and extract_year(cd['date']) < this_person.get_birth_year():
                     errors = {'date': 'Event date is before birth date!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
-                if cd['date'] and this_person.death_year and extract_year(cd['date']) > this_person.death_year:
+                if cd['date'] and this_person.get_death_year() and extract_year(cd['date']) > this_person.get_death_year():
                     errors = {'date': 'Event date is after death date!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
@@ -1275,6 +1495,68 @@ def add_event(request, id, event_type):
     else:
         print("EPIC FAIL")
 
+@login_required
+def edit_event(request, id):
+    if request.method == 'POST':
+        event = Event.objects.get(id=id)
+        form = EditEventForm(request.POST, instance=event)
+        if 'submit' in request.POST:
+            if form.is_valid():
+                form.save()
+                return HttpResponse(status=204)
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+        elif 'delete' in request.POST:
+            event.delete()
+            return HttpResponse(status=204)
+        else:
+            print("EPIC FAIL")
+    else:
+        event = Event.objects.get(id=id)
+        form = EditEventForm(instance=event)
+
+    return render(
+        request,
+        'genealogy/edit_event_modal.html',
+        {
+            'form': form, 
+            'event': event,
+            'event_type_text': event.get_event_type_display()
+        }
+    )
+
+@login_required
+def edit_family_event(request, id):
+    if request.method == 'POST':
+        event = FamilyEvent.objects.get(id=id)
+        form = EditFamilyEventForm(request.POST, instance=event)
+        if 'submit' in request.POST:
+            if form.is_valid():
+                form.save()
+                return HttpResponse(status=204)
+            else:
+                response = JsonResponse({'errors': dict(form.errors)}, status=400)
+                return response
+        elif 'delete' in request.POST:
+            event.delete()
+            return HttpResponse(status=204)
+        else:
+            print("EPIC FAIL")
+    else:
+        event = FamilyEvent.objects.get(id=id)
+        form = EditFamilyEventForm(instance=event)
+        form.fields['family'].initial = event.family.id
+
+    return render(
+        request,
+        'genealogy/edit_family_event_modal.html',
+        {
+            'form': form, 
+            'event': event,
+            'event_type_text': str(event)
+        }
+    )
 
 @login_required
 def get_tree_list(request):

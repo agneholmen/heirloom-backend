@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block title %}View Tree{% endblock title %}
+{% block css_include %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/tree_style.css' %}">
+{% endblock css_include %}
+
 
 {% block javascript_data %}
     {% if people %}
@@ -24,12 +29,7 @@
         </div>
     </div>
     {% endif %}
-    <div class="modal fade modal-blur" tabindex="-1" id="modal">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" id="modal-content" hx-target="this">
-            </div>
-        </div>
-    </div>
+    {% include 'genealogy/modal_container.html' %}
 {% endblock content %}
 {% block javascript_include %}
     {% load static %}

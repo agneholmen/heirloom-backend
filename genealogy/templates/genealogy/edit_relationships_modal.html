@@ -56,7 +56,7 @@
     {% else %}
         <div class="d-flex justify-content-between border rounded p-2 m-2">
             <span>No partners</span>
-            <a href="#" hx-get="{% url 'add_person_as_partner' person.id %}"
+            <a href="#" hx-get="{% url 'add_person_as_partner' person.id 0 %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
                 {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
         </div>

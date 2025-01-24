@@ -5,6 +5,8 @@ from . import views
 urlpatterns = [
     path('', include('django.contrib.auth.urls')),
     path('', views.home, name='home'),
+    path('event/<int:id>/edit', views.edit_event, name='edit_event'),
+    path('family-event/<int:id>/edit', views.edit_family_event, name='edit_family_event'),
     path('images/', views.images, name='images'),
     path('register/', views.register, name='register'),
     path('profile/edit', views.edit_profile, name='edit_profile'),
@@ -15,7 +17,7 @@ urlpatterns = [
     path('person/<int:id>/delete', views.delete_person, name='delete_person'),
     path('person/<int:id>/event-list', views.event_list, name='event_list'),
     path('person/<int:id>/event/add/<str:event_type>', views.add_event, name='add_event'),
-    path('person/<int:id>/add/partner', views.add_person_as_partner, name='add_person_as_partner'),
+    path('person/<int:id>/add/partner/<int:family_id>', views.add_person_as_partner, name='add_person_as_partner'),
     path('person/<int:id>/add/child', views.add_person_as_child, name='add_person_as_child'),
     path('person/<int:id>/add/parent/<str:parent>', views.add_person_as_parent, name='add_person_as_parent'),
     path('search/', views.search, name='search'),

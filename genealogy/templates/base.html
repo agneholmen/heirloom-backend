@@ -7,7 +7,8 @@
     {% load bootstrap_icons %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/tree_style.css' %}">
+    {% block css_include %}{% endblock css_include %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     {% block javascript_data %}{% endblock %}
 </head>

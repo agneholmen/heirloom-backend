@@ -263,9 +263,10 @@ class PersonNamesFamilyForm(PersonNamesForm):
         super().__init__(*args, **kwargs)
         self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
 
-    family = forms.ChoiceField(
+    family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
         required=True,
+        coerce=int,
         label="Select Family"
     )
 
@@ -329,9 +330,10 @@ class AddExistingPersonChildForm(FindExistingPersonForm):
         self.fields['identifier'].initial = 'add_existing_person'
         self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
 
-    family = forms.ChoiceField(
+    family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
         required=True,
+        coerce=int,
         label="Select Family"
     )
 
@@ -388,18 +390,73 @@ class AddEventForm(forms.ModelForm):
         model = Event
         fields = ['date', 'place', 'description']
 
+class EditEventForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('identifier'),
+            Row('date', css_class="form-outline mb4"),
+            Row('place', css_class="form-outline mb4"),
+            Row('description', css_class="form-outline mb4"),
+            Row(
+                Column(Submit('submit', 'Save', css_class="btn btn-primary")),
+                Column(Submit('delete', 'Delete', css_class="btn btn-danger")),
+                Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
+                css_class="form-outline mb12"
+            )
+        )
+
+    identifier = forms.CharField(initial='edit_event', widget=forms.HiddenInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['date'] or cleaned_data['place'] or cleaned_data['description']):
+            raise forms.ValidationError('You must fill out at least one of the fields.')
+
+        return cleaned_data
+
+    class Meta:
+        model = Event
+        fields = ['date', 'place', 'description']
+
 class AddFamilyEventForm(AddEventForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
 
-    family = forms.ChoiceField(
+    family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
         required=True,
+        coerce=int,
         label="Select Family"
     )
 
     identifier = forms.CharField(initial='add_family_event', widget=forms.HiddenInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not (cleaned_data['date'] or cleaned_data['place'] or cleaned_data['description']):
+            raise forms.ValidationError('You must fill out at least one of the fields.')
+
+        return cleaned_data
+
+    class Meta:
+        model = FamilyEvent
+        fields = ['date', 'place', 'description']
+
+class EditFamilyEventForm(EditEventForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+
+    family = forms.IntegerField(initial=0, widget=forms.HiddenInput())
+
+    identifier = forms.CharField(initial='edit_family_event', widget=forms.HiddenInput())
 
     def clean(self):
         cleaned_data = super().clean()
