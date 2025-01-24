@@ -55,6 +55,11 @@ FAMILY_EVENT_MAPPING = {
     'ENGA': 'engagement',
 }
 
+ONE_TIME_EVENTS = [
+    'BIRT',
+    'DEAT',
+]
+
 class Ind:
     def __init__(self, indi_id):
         self.id = indi_id
@@ -63,8 +68,7 @@ class Ind:
         self.surname = ''
         self.fams = ''
         self.famc = ''
-        self.birth = {'date': None, 'place': None, 'year': None}
-        self.death = {'date': None, 'place': None, 'cause': '', 'year': None}
+        self.death = {'cause': ''}
         self.events = []
 
     def get_name(self):
@@ -84,31 +88,12 @@ class Ind:
         }
         return mapping[self.sex]
 
-    def get_birth_date(self):
-        return self.birth['date']
-
-    def get_birth_place(self, no_country=True):
-        if no_country:
-            return self.birth['place'].removesuffix(', Sverige')
-        else:
-            return self.birth['place']
-
-    def get_death_date(self):
-        return self.death['date']
-
-    def get_death_place(self, no_country=True):
-        if no_country:
-            return self.death['place'].removesuffix(', Sverige')
-        else:
-            return self.death['place']
-
     def get_death_cause(self):
         return self.death['cause']
 
     def __str__(self):
-        return 'Namn: {} {}\nKön: {}\nFödelsedatum: {}\nFödelseplats: {}\nDödsdatum: {}\nDödsplats: {}\n'.format(
-                    self.given_name, self.surname, self.sex, self.birth['date'], self.birth['place'],
-                    self.death['date'], self.death['place'])
+        return 'Namn: {} {}\nKön: {}'.format(
+                    self.given_name, self.surname, self.sex)
 
 
 class FamilyGC:
@@ -183,22 +168,6 @@ class Gedcom:
                 indi.given_name = givn
                 indi.surname = surn
 
-            # BIRT
-            if BIRT_REGEX.match(current_line):
-                date, place = self.parse_birt(lines, current_index)
-                indi.birth['date'] = date
-                indi.birth['place'] = place
-                if date:
-                    indi.birth['year'] = df.extract_year(date)
-
-            # DEAT
-            if DEAT_REGEX.match(current_line):
-                date, place = self.parse_deat(lines, current_index)
-                indi.death['date'] = date
-                indi.death['place'] = place
-                if date:
-                    indi.death['year'] = df.extract_year(date)
-
             # DCAUSE
             if DCAUSE_REGEX.match(current_line):
                 matches = NOTE_REGEX.match(lines[index + 1].strip())
@@ -210,10 +179,13 @@ class Gedcom:
             if matches:
                 event_type = matches.group(1)
                 if event_type in EVENT_MAPPING.keys():
-                    event = self.parse_event(lines, current_index)
-                    if event:
-                        event['type'] = EVENT_MAPPING[event_type]
-                        indi.events.append(event)
+                    if event_type in ONE_TIME_EVENTS and any(e['type'] == EVENT_MAPPING[event_type] for e in indi.events):
+                        print(f"Event {event_type} already exists for {indi.get_name()}")
+                    else:
+                        event = self.parse_event(lines, current_index)
+                        if event:
+                            event['type'] = EVENT_MAPPING[event_type]
+                            indi.events.append(event)
 
         self.individuals[indi_id] = indi
 

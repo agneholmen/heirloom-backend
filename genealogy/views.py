@@ -300,6 +300,7 @@ def person(request, id):
         half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person)
     
     timeline_events = []
+    timeline_events_no_year = []
 
     family_objects = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
     if family_objects:
@@ -315,20 +316,21 @@ def person(request, id):
             for child in family['children']:
                 c_birth = child.indi.get_birth_event()
                 c_death = child.indi.get_death_event()
-                timeline_events.append(
-                    {
-                        'year': c_birth.year, 
-                        'description': "", 
-                        'date': c_birth.date,
-                        'event_type': 'birth', 
-                        'event_type_full': f"Birth of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
-                        'place': c_birth.place, 
-                        'id': child.indi.id,
-                        'model_type': 'relative',
-                        'family_member': child.indi,
-                        'years_since_birth': c_birth.year - birth.year
-                    }
-                )
+                if c_birth and c_birth.year:
+                    timeline_events.append(
+                        {
+                            'year': c_birth.year, 
+                            'description': "", 
+                            'date': c_birth.date,
+                            'event_type': 'birth', 
+                            'event_type_full': f"Birth of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
+                            'place': c_birth.place, 
+                            'id': child.indi.id,
+                            'model_type': 'relative',
+                            'family_member': child.indi,
+                            'years_since_birth': c_birth.year - birth.year
+                        }
+                    )
                 if c_death and death and c_death.year < death.year:
                     timeline_events.append(
                         {
@@ -376,8 +378,7 @@ def person(request, id):
 
     for e in events:
         if e.event_type not in ['birth', 'death']:
-            timeline_events.append(
-                {
+            new_event = {
                     'year': e.year, 
                     'description': e.description,
                     'date': e.date,
@@ -388,10 +389,12 @@ def person(request, id):
                     'model_type': 'basic',
                     'years_since_birth': e.year - birth.year if birth else None
                 }
-            )
+            if new_event['year']:
+                timeline_events.append(new_event)
+            else:
+                timeline_events_no_year.append(new_event)
     for e in family_events:
-        timeline_events.append(
-            {
+        new_event = {
                 'year': e.year, 
                 'description': e.description, 
                 'date': e.date,
@@ -403,7 +406,10 @@ def person(request, id):
                 'model_type': 'family',
                 'years_since_birth': birth.year if birth else None
             }
-        )
+        if new_event['year']:
+            timeline_events.append(new_event)
+        else:
+            timeline_events_no_year.append(new_event)
 
     # Add events related to relatives
     for s in chain(siblings or [], half_siblings or []):
@@ -442,7 +448,7 @@ def person(request, id):
 
     if father:
         f_death = father.get_death_event()
-        if not (f_death and death and f_death.year > death.year) and f_death:
+        if not (f_death and death and f_death.year > death.year) and f_death and f_death.year:
             timeline_events.append(
                 {
                     'year': f_death.year, 
@@ -459,10 +465,10 @@ def person(request, id):
             )
     if mother:
         m_death = mother.get_death_event()
-        if not (m_death and death and m_death.year > death.year) and m_death:
+        if not (m_death and death and m_death.year > death.year) and m_death and m_death.year:
             timeline_events.append(
                 {
-                    'year': m_death.year or None,
+                    'year': m_death.year,
                     'description': "", 
                     'date': m_death.date,
                     'event_type': 'death', 
@@ -503,6 +509,8 @@ def person(request, id):
                 'years_since_birth': death.year - birth.year if birth else None
             }
         )
+
+    timeline_events.extend(timeline_events_no_year)
 
     # More should be added
     for event in timeline_events:
