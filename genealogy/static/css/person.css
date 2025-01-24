@@ -2,6 +2,8 @@
     /* This needs improvement */
     display: flex;
     align-items: center;
+    max-width: 1200px;
+    margin: 20px auto;
 }
 
 .person-options button {

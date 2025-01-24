@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from django.templatetags.static import static
@@ -311,7 +311,11 @@ def person(request, id):
                 'children': [],
                 'id': f.id
             }
-            family['children'] = Child.objects.filter(family=f)
+
+            # Sort children based on birth year
+            birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
+            family['children'] = Child.objects.filter(family=f).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
+
             # Add timeline events for children
             for child in family['children']:
                 c_birth = child.indi.get_birth_event()
