@@ -203,7 +203,7 @@ def search(request):
                 query += f"&birth_year_start={cd['birth_year_start']}"
                 birth_conditions.append(Q(event__year__gte=cd['birth_year_start']))
             if cd['birth_year_end']:
-                query += f"&birth_year_end{cd['birth_year_end']}"
+                query += f"&birth_year_end={cd['birth_year_end']}"
                 birth_conditions.append(Q(event__year__lte=cd['birth_year_end']))
             if cd['death_place']:
                 query += f"&death_place={cd['death_place']}"
