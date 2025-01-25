@@ -509,12 +509,18 @@ def person(request, id):
     for event in timeline_events:
         if event['event_type'] == 'birth':
             event['icon'] = '🎂'
+        elif event['event_type'] == 'baptism':
+            event['icon'] = '🕊️'
         elif event['event_type'] == 'death':
             event['icon'] = '☠️'
+        elif event['event_type'] == 'funeral':
+            event['icon'] = '⚰️'
         elif event['event_type'] == 'marriage':
             event['icon'] = '💍'
         elif event['event_type'] == 'residence':
             event['icon'] = '🏠'
+        elif event['event_type'] == 'divorce':
+            event['icon'] = '💔'
         else:
             event['icon'] = '📆'
 
