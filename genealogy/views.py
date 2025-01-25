@@ -281,6 +281,9 @@ def person(request, id):
     birth = this_person.get_birth_event()
     death = this_person.get_death_event()
 
+    # Used for sorting siblings, half-siblings, and children based on birth year
+    birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
+
     father = this_person.get_father()
     mother = this_person.get_mother()
     siblings = None
@@ -288,7 +291,7 @@ def person(request, id):
     families = None
     children_objects = Child.objects.filter(indi=this_person)
     if children_objects:
-        siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id)
+        siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
 
         half_sibling_queries = Q()
         if father is not None:
@@ -297,7 +300,7 @@ def person(request, id):
             half_sibling_queries |= Q(wife=mother) & ~Q(husband=father)
 
         half_sibling_families = Family.objects.filter(half_sibling_queries)
-        half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person)
+        half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
     
     timeline_events = []
     timeline_events_no_year = []
@@ -313,7 +316,6 @@ def person(request, id):
             }
 
             # Sort children based on birth year
-            birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
             family['children'] = Child.objects.filter(family=f).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
 
             # Add timeline events for children
@@ -1621,7 +1623,9 @@ def view_tree(request, id, person_id):
         'id': first_person.id,
         'image': get_default_image(first_person.sex),
         'years': first_person.get_years(),
-        'person_url': reverse('person', kwargs={'id': first_person.id})
+        'person_url': reverse('person', kwargs={'id': first_person.id}),
+        'tree_url': reverse('view_tree', kwargs={'id': id, 'person_id': first_person.id}),
+        'edit_url': reverse('edit_person', kwargs={'id': first_person.id})
     }
 
     people_data['parents'] = tree_get_parents(first_person, 1, generations, id)
@@ -1651,7 +1655,9 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'id': father.id,
             'image': get_default_image(father.sex),
             'years': father.get_years(),
-            'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': father.id}),
+            'person_url': reverse('person', kwargs={'id': father.id}),
+            'tree_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': father.id}),
+            'edit_url': reverse('edit_person', kwargs={'id': father.id}),
             'parent_type': 'father',
             'parents': tree_get_parents(father, generation + 1, max_generation, tree_id)
         })
@@ -1670,7 +1676,9 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'id': mother.id,
             'image': get_default_image(mother.sex),
             'years': mother.get_years(),
-            'person_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': mother.id}),
+            'person_url': reverse('person', kwargs={'id': mother.id}),
+            'tree_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': mother.id}),
+            'edit_url': reverse('edit_person', kwargs={'id': mother.id}),
             'parent_type': 'mother',
             'parents': tree_get_parents(mother, generation + 1, max_generation, tree_id)
         })

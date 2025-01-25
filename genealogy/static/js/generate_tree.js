@@ -68,17 +68,32 @@ function calculatePositions(node, depth = 0, xOffset = firstPersonX) {
 
 function createPersonBox(personData) {
     var boxHTML = `
-    <div style="top: ${personData['y']}px; left: ${personData['x']}px;" class="tree-node">
-        <a href="${personData['person_url']}">
-            <button id="${personData['id']}" class="tree-node-button">
-                <span class="avatar">
-                    <img src="${personData['image']}" alt="avatar" class="avatar-image" />
-                </span>
-                <span>${personData['first_name'] != null ? personData['first_name'] : ''}</span>
-                <span>${personData['last_name'] != null ? personData['last_name'] : ''}</span>
-                <span>${personData['years'] != null ? personData['years'] : ''}</span>
-            </button>
-        </a>
+    <div class="tree-node-container" style="top: ${personData['y']}px; left: ${personData['x']}px;">
+        <div class="tree-node">
+            <a href="${personData['person_url']}">
+                <button id="${personData['id']}" class="tree-node-button">
+                    <span class="avatar">
+                        <img src="${personData['image']}" alt="avatar" class="avatar-image" />
+                    </span>
+                    <span>${personData['first_name'] != null ? personData['first_name'] : ''}</span>
+                    <span>${personData['last_name'] != null ? personData['last_name'] : ''}</span>
+                    <span>${personData['years'] != null ? personData['years'] : ''}</span>
+                </button>
+            </a>
+        </div>
+        <div class="link-list">
+			<a href="#" hx-get="${personData['edit_url']}" hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modal">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" fill="#007bff" class="bi bi-pencil-square" viewBox="0 0 16 16">
+					<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
+					<path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"></path>
+				</svg>
+			</a>
+			<a href="${personData['tree_url']}">
+				<svg xmlns="http://www.w3.org/2000/svg" width="1.4em" height="1.4em" fill="#57b94e" class="bi bi-tree" viewBox="0 0 16 16">
+					<path d="M8.416.223a.5.5 0 0 0-.832 0l-3 4.5A.5.5 0 0 0 5 5.5h.098L3.076 8.735A.5.5 0 0 0 3.5 9.5h.191l-1.638 3.276a.5.5 0 0 0 .447.724H7V16h2v-2.5h4.5a.5.5 0 0 0 .447-.724L12.31 9.5h.191a.5.5 0 0 0 .424-.765L10.902 5.5H11a.5.5 0 0 0 .416-.777l-3-4.5zM6.437 4.758A.5.5 0 0 0 6 4.5h-.066L8 1.401 10.066 4.5H10a.5.5 0 0 0-.424.765L11.598 8.5H11.5a.5.5 0 0 0-.447.724L12.69 12.5H3.309l1.638-3.276A.5.5 0 0 0 4.5 8.5h-.098l2.022-3.235a.5.5 0 0 0 .013-.507z"></path>
+				</svg>
+			</a>
+        </div>
     </div>`
 
     var temp = document.createElement('div');
