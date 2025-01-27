@@ -7,7 +7,7 @@ from django.http import HttpResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect
 from django.templatetags.static import static
 from django.urls import reverse
-from .forms import (
+from ..forms import (
     AddEventForm,
     AddExistingPersonChildForm,
     AddFamilyEventForm,
@@ -27,7 +27,7 @@ from .forms import (
     UserEditForm,
     UserRegistrationForm
 )
-from .models import (
+from ..models import (
     Child,
     Event,
     Family,
@@ -37,9 +37,9 @@ from .models import (
     Tree
 )
 
-from . import gedcom
+from .. import gedcom
 
-from .date_functions import extract_year
+from ..date_functions import extract_year
 
 from functools import reduce
 

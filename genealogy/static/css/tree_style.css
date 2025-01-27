@@ -123,6 +123,4 @@
 .tree-node:hover .link-list {
     display: block;
     top: 100%;
-    z-index: 10;
-    width: 100%;
 }
