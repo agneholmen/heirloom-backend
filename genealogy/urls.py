@@ -28,5 +28,6 @@ urlpatterns = [
     path('tree/<int:id>/edit', views.edit_tree, name='edit_tree'),
     path('tree/<int:id>/add-person', views.add_person, name='add_person'),
     path('tree/<int:id>/find-for-dropdown', views.search_people_for_dropdown, name='search_people_for_dropdown'),
+    path('tree/<int:id>/download', views.download_tree, name='download_tree'),
     path('tree/get-list', views.get_tree_list, name='get_tree_list'),
 ]

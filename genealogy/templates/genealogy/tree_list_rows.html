@@ -14,5 +14,8 @@
                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
                     data-bs-toggle="modal" data-bs-target="#modal">{% bs_icon 'trash' size="2em" color="#dc3545" %}</a>
         </td>
+        <td>
+            <a href="{% url 'download_tree' tree.id %}"><button type="button" class="btn btn-primary">Download GEDCOM</button></a>
+        </td>
     </tr>
 {% endfor %} 

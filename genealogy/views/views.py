@@ -45,7 +45,28 @@ from functools import reduce
 
 from itertools import chain
 
+import datetime
 import json
+
+EVENT_MAPPING = {
+    'residence': 'RESI',
+    'emigration': 'EMIG',
+    'baptism': 'BAPM',
+    'funeral': 'BURI',
+    'immigration': 'IMMI',
+    'graduation': 'GRAD',
+    'cremation': 'CREM',
+    'confirmation': 'CONF',
+    'birth': 'BIRT',
+    'death': 'DEAT',
+}
+
+FAMILY_EVENT_MAPPING = {
+    'marriage': 'MARR',
+    'divorce': 'DIV',
+    'banns': 'MARB',
+    'engagement': 'ENGA',
+}
 
 NAMES_REPLACE = [
     ["Annika", "Annicka"],
@@ -1389,6 +1410,105 @@ def edit_tree(request, id):
         'genealogy/edit_tree_modal.html',
         {'tree': this_tree, 'form': form}
     )
+
+@login_required
+def download_tree(request, id):
+    try:
+        this_tree = Tree.objects.get(id=id)
+        if this_tree.user != request.user:
+            raise Http404("Tree not found for this user.")
+    except Tree.DoesNotExist:
+        raise Http404("Tree does not exist.")
+
+    content = f'''0 HEAD
+1 SUBM @SUBM1@
+1 SOUR Project Heirloom
+2 _TREE {this_tree.name}
+1 DATE {datetime.datetime.now().strftime("%d %b %Y")}
+2 TIME {datetime.datetime.now().strftime("%X")}
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+0 @SUBM1@ SUBM
+1 NAME Project Heirloom Member Trees Submitter
+'''
+
+    indi_id_counter = 1
+    family_id_counter = 1
+
+    family_instances = list(Family.objects.filter(tree=this_tree))
+    for fam in family_instances:
+        fam.family_id = f"@F{str(family_id_counter)}@"
+        family_id_counter += 1
+    Family.objects.bulk_update(family_instances, ["family_id"])
+
+    individual_instances = list(Individual.objects.filter(tree=this_tree))
+    for indi in individual_instances:
+        indi.indi_id = f"@I{str(indi_id_counter)}@"
+        indi_id_counter += 1
+
+        content += f"0 {indi.indi_id} INDI\n"
+        name = ""
+        if indi.first_name:
+            name += f"{indi.first_name} "
+        if indi.last_name:
+            name += f"/{indi.last_name}/"
+        if name:
+            content += f"1 NAME {name}\n"
+            if indi.first_name:
+                content += f"2 GIVN {indi.first_name}\n"
+            if indi.last_name:
+                content += f"2 SURN {indi.last_name}\n"
+        
+        content += f"1 SEX {indi.sex}\n"
+        try:
+            child = Child.objects.get(indi=indi)
+            content += f"1 FAMC {child.family.family_id}\n"
+        except:
+            pass
+
+        indi_families = Family.objects.filter(Q(husband=indi) or Q(wife=indi))
+        for fam in indi_families:
+            content += f"1 FAMS {fam.family_id}\n"
+
+        indi_events = Event.objects.filter(indi=indi)
+        for event in indi_events:
+            content += f"1 {EVENT_MAPPING[event.event_type]}\n"
+            if event.date:
+                content += f"2 DATE {event.date}\n"
+            if event.place:
+                content += f"2 PLAC {event.place}\n"
+            if event.description:
+                content += f"2 NOTE {event.description}\n"
+
+    Individual.objects.bulk_update(individual_instances, ["indi_id"])
+
+    for fam in family_instances:
+        content += f"0 {fam.family_id} FAM\n"
+        if fam.husband:
+            content += f"1 HUSB {fam.husband.indi_id}\n"
+        if fam.wife:
+            content += f"1 WIFE {fam.wife.indi_id}\n"
+
+        children = Child.objects.filter(family=fam)
+        for child in children:
+            content += f"1 CHIL {child.indi.indi_id}\n"
+
+        family_events = FamilyEvent.objects.filter(family=fam)
+        for event in family_events:
+            content += f"1 {FAMILY_EVENT_MAPPING[event.event_type]}\n"
+            if event.date:
+                content += f"2 DATE {event.date}\n"
+            if event.place:
+                content += f"2 PLAC {event.place}\n"
+            if event.description:
+                content += f"2 NOTE {event.description}\n"
+
+    response = HttpResponse(content, content_type="text/plain")
+    response["Content-Disposition"] = f'attachment; filename="{this_tree.name}.ged"'
+
+    return response
 
 @login_required
 def event_list(request, id):
