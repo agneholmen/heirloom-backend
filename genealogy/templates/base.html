@@ -21,8 +21,19 @@
                 <li class="nav-item">
                     <a href="{% url "home" %}" class="nav-link {% if section == "home" %}active{% endif %}">Home</a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item dropdown">
+                    {% if trees %}
+                    <a href="#" class="nav-link {% if section == "family_tree" %}active{% endif %}" role="button" aria-expanded="false" data-bs-toggle="dropdown">Family Trees</a>
+                    <ul class="dropdown-menu">
+                        {% for tree in trees %}
+                        <li><a href="{% url "view_tree" tree.id 0 %}" class="dropdown-item">{{ tree.name }}</a></li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a href="{% url "family_tree" %}" class="dropdown-item">Tree Admin</a></li>
+                    </ul>
+                    {% else %}
                     <a href="{% url "family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Trees</a>
+                    {% endif %}
                 </li>
                 <li class="nav-item">
                     <a href="{% url "search" %}" class="nav-link {% if section == "search" %}active{% endif %}">Search</a>
