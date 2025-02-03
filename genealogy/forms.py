@@ -258,6 +258,26 @@ class PersonNamesForm(forms.ModelForm):
 
     identifier = forms.CharField(initial='', widget=forms.HiddenInput(), required=False)
 
+class ExistingChildrenForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('existing_children', css_class="form-outline mb4")
+            )
+        )
+
+    existing_children = forms.TypedMultipleChoiceField(
+        choices=[],
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        coerce=int,
+        label="Include as children to partner"
+    )
+
 class PersonNamesFamilyForm(PersonNamesForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

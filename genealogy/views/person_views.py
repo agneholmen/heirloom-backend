@@ -15,6 +15,7 @@ from ..forms import (
     EditEventForm, 
     EditFamilyEventForm, 
     EventShortForm, 
+    ExistingChildrenForm,
     FindExistingPersonForm,
     PersonNamesFamilyForm,
     PersonNamesForm,
@@ -542,6 +543,11 @@ def add_person_as_partner(request, id, family_id):
             person_form = PersonNamesForm(request.POST)
             birth_form = EventShortForm(request.POST, prefix='birth')
             death_form = EventShortForm(request.POST, prefix='death')
+            if 'existing_children' in request.POST:
+                existing_children_form = ExistingChildrenForm(request.POST)
+                existing_children_form.fields['existing_children'].choices = get_single_parent_children(this_person)
+            else:
+                existing_children_form = None
 
             if not person_form.is_valid():
                 response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
@@ -551,6 +557,9 @@ def add_person_as_partner(request, id, family_id):
                 return response
             if not death_form.is_valid():
                 response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+                return response
+            if existing_children_form and not existing_children_form.is_valid():
+                response = JsonResponse({'errors': dict(existing_children_form.errors)}, status=400)
                 return response
 
             cd = person_form.cleaned_data
@@ -572,33 +581,75 @@ def add_person_as_partner(request, id, family_id):
                 death_event = Event(indi=partner, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
-            try:
-                family = Family.objects.get(id=family_id)
-                if this_person.sex == 'M':
-                    family.husband = this_person
-                    family.wife = partner
-                else:
-                    family.husband = partner
-                    family.wife = this_person
-                family.save()
-            except:
-                family = Family()
-                if this_person.sex == 'M':
-                    family.husband = this_person
-                    family.wife = partner
-                else:
-                    family.husband = partner
-                    family.wife = this_person
-                family.tree = this_person.tree
-                family.save()
+            # No existing children to add to new partner
+            if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_id != 0:
+                try:
+                    family = Family.objects.get(id=family_id)
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.save()
+                except:
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
+            elif existing_children_form:
+                selected_children = existing_children_form.cleaned_data['existing_children']
+                families = Family.objects.filter((Q(husband=this_person) & Q(wife=None)) | (Q(wife=this_person) & Q(husband=None)))
+                if families:
+                    # This should not be needed, but updating families[0] directly doesn't work for some reason.
+                    family = Family.objects.get(id=families[0].id)
+
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                        family.wife = partner
+                    else:
+                        family.husband = partner
+                        family.wife = this_person
+                    family.save()
+
+                # Create new single parent family for remaining children
+                if len(selected_children) != len(existing_children_form.fields['existing_children'].choices):
+                    still_single_parent_children = [child[0] for child in existing_children_form.fields['existing_children'].choices if child[0] not in selected_children]
+
+                    family = Family()
+                    if this_person.sex == 'M':
+                        family.husband = this_person
+                    else:
+                        family.wife = this_person
+                    family.tree = this_person.tree
+                    family.save()
+
+                    for child in still_single_parent_children:
+                        child_object = Child.objects.get(id=child)
+                        child_object.family = family
+                        child_object.save()          
 
             return HttpResponse(status=204)
             
         elif request.POST.get('identifier') == 'add_existing_person':
             find_people_form = FindExistingPersonForm(request.POST, tree_id=this_person.tree.id)
+            if 'existing_children' in request.POST:
+                existing_children_form = ExistingChildrenForm(request.POST)
+                existing_children_form.fields['existing_children'].choices = get_single_parent_children(this_person)
+            else:
+                existing_children_form = None
             dropdown_persons = get_dropdown_persons(request.POST.get('person'), this_person.tree.id)
             for p in dropdown_persons:
                 find_people_form.fields['selected_person'].choices.append((p.id, p.get_name_years()))
+
+            if existing_children_form and not existing_children_form.is_valid():
+                response = JsonResponse({'errors': dict(existing_children_form.errors)}, status=400)
+                return response
 
             if find_people_form.is_valid():
                 cd = find_people_form.cleaned_data
@@ -622,26 +673,60 @@ def add_person_as_partner(request, id, family_id):
                     errors = {'not_alive_at_the_same_time': 'The selected people were not alive at the same time!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
-                
-                try:
-                    family = Family.objects.get(id=family_id)
-                    if this_person.sex == 'M':
-                        family.husband = this_person
-                        family.wife = partner
-                    else:
-                        family.husband = partner
-                        family.wife = this_person
-                    family.save()
-                except:
-                    family = Family()
-                    if this_person.sex == 'M':
-                        family.husband = this_person
-                        family.wife = partner
-                    else:
-                        family.husband = partner
-                        family.wife = this_person
-                    family.tree = this_person.tree
-                    family.save()
+
+                if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_id != 0:
+                    try:
+                        family = Family.objects.get(id=family_id)
+                        if this_person.sex == 'M':
+                            family.husband = this_person
+                            family.wife = partner
+                        else:
+                            family.husband = partner
+                            family.wife = this_person
+                        family.save()
+                    except:
+                        family = Family()
+                        if this_person.sex == 'M':
+                            family.husband = this_person
+                            family.wife = partner
+                        else:
+                            family.husband = partner
+                            family.wife = this_person
+                        family.tree = this_person.tree
+                        family.save()
+
+                elif existing_children_form:
+                    selected_children = existing_children_form.cleaned_data['existing_children']
+                    families = Family.objects.filter((Q(husband=this_person) & Q(wife=None)) | (Q(wife=this_person) & Q(husband=None)))
+
+                    if families:
+                        # This should not be needed, but updating families[0] directly doesn't work for some reason.
+                        family = Family.objects.get(id=families[0].id)
+
+                        if this_person.sex == 'M':
+                            family.husband = this_person
+                            family.wife = partner
+                        else:
+                            family.husband = partner
+                            family.wife = this_person
+                        family.save()
+
+                    # Create new single parent family for remaining children
+                    if len(selected_children) != len(existing_children_form.fields['existing_children'].choices):
+                        still_single_parent_children = [child[0] for child in existing_children_form.fields['existing_children'].choices if child[0] not in selected_children]
+
+                        family = Family()
+                        if this_person.sex == 'M':
+                            family.husband = this_person
+                        else:
+                            family.wife = this_person
+                        family.tree = this_person.tree
+                        family.save()
+
+                        for child in still_single_parent_children:
+                            child_object = Child.objects.get(id=child)
+                            child_object.family = family
+                            child_object.save()
 
                 return HttpResponse(status=204)
             else:
@@ -653,6 +738,13 @@ def add_person_as_partner(request, id, family_id):
         person_form.fields['identifier'].initial = 'add_new_person'
         birth_form = EventShortForm(prefix='birth')
         death_form = EventShortForm(prefix='death')
+        existing_children = get_single_parent_children(this_person)
+        if existing_children and family_id == 0:
+            existing_children_form = ExistingChildrenForm()
+            existing_children_form.fields['existing_children'].choices = existing_children
+            existing_children_form.fields['existing_children'].initial = [child[0] for child in existing_children]
+        else:
+            existing_children_form = None
         find_people_form = FindExistingPersonForm(tree_id=this_person.tree.id)
 
     title = f'Add Partner for {this_person}'
@@ -664,6 +756,7 @@ def add_person_as_partner(request, id, family_id):
             'person_form': person_form,
             'birth_form': birth_form,
             'death_form': death_form,
+            'existing_children_form': existing_children_form,
             'search_form': find_people_form, 
             'modal_title': title
         }
@@ -1311,3 +1404,12 @@ def edit_family_event(request, id):
             'event_type_text': str(event)
         }
     )
+
+def get_single_parent_children(person):
+    families = Family.objects.filter((Q(husband=person) & Q(wife=None)) | (Q(wife=person) & Q(husband=None)))
+
+    if families:
+        children = [(child.id, child.indi) for child in Child.objects.filter(family=families[0])]
+        return children
+    else:
+        return None

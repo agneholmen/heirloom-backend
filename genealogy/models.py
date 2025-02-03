@@ -367,6 +367,22 @@ def handle_family_cleanup(sender, instance, **kwargs):
         # Family with children and only one parent
         if (family.husband == instance and not family.wife) or (family.wife == instance and not family.husband):
             family.delete()
+        # Prevent partner from having multiple single parent families
+        else:
+            if family.husband == instance:
+                partner_single_parent_families = Family.objects.filter(models.Q(husband=None) & models.Q(wife=family.wife))
+            else:
+                partner_single_parent_families = Family.objects.filter(models.Q(husband=family.husband) & models.Q(wife=None))
+
+            if partner_single_parent_families:
+                children = Child.objects.filter(family=family)
+                for child in children:
+                    old_family = Family.objects.get(id=partner_single_parent_families[0].id)
+                    child.family = old_family
+                    child.save()
+
+            family.delete()
+
 
     children = Child.objects.filter(indi=instance)
     for child in children:
