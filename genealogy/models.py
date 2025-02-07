@@ -90,9 +90,6 @@ class Individual(models.Model):
     last_updated = models.DateField(auto_now=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tree', 'indi_id'], name='Tree and INDI combination')
-        ]
         ordering = ['last_name']
 
     def get_father(self):
