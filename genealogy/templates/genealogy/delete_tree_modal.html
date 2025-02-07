@@ -8,10 +8,9 @@
     <p class="mb-0">Are you sure you want to delete the tree <b>{{ tree.name }}</b>?</p>
 </div>
 <div class="modal-footer">
-    <form hx-post="{% url 'delete_tree' tree.id %}" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleDeleteTreeRequest(event)">
+    <form hx-post="{% url 'delete_tree' tree.id %}" hx-target="body" hx-swap="outerHTML">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger" id="confirm-delete-tree">Delete</button>
     </form>
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 </div>
-<script src="{% static 'js/delete_tree_modal.js' %}"></script>

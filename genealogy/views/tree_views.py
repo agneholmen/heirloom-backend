@@ -177,8 +177,7 @@ def delete_tree(request, id):
     
     if request.method == "POST":
         this_tree.delete()
-        if request.headers.get('HX-Request') == 'true':
-            return HttpResponse(status=204, headers={'HX-Trigger': 'tree-list-changed'})
+        messages.success(request, 'Tree deleted successfully!')
         return redirect('family_tree')
     else:
         return render(request, 'genealogy/delete_tree_modal.html', {'tree': this_tree})
