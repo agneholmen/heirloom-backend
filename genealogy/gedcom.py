@@ -211,46 +211,6 @@ class Gedcom:
             if matches:
                 surn = matches.group(2)
 
-    @staticmethod
-    def parse_birt(lines, start_index):
-        matches = BIRT_REGEX.match(lines[start_index])
-        level = matches.group(1)
-
-        date = None
-        place = None
-
-        for index, line in enumerate(lines[start_index + 1:]):
-            current_line = line.strip()
-            if line.startswith(str(level)) or current_line == '':
-                return date, place
-            matches = DATE_REGEX.match(current_line)
-            if matches:
-                date = matches.group(2)
-
-            matches = PLAC_REGEX.match(current_line)
-            if matches:
-                place = matches.group(2)
-
-    @staticmethod
-    def parse_deat(lines, start_index):
-        matches = DEAT_REGEX.match(lines[start_index])
-        level = matches.group(1)
-
-        date = None
-        place = None
-
-        for index, line in enumerate(lines[start_index + 1:]):
-            current_line = line.strip()
-            if line.startswith(str(level)) or current_line == '':
-                return date, place
-            matches = DATE_REGEX.match(current_line)
-            if matches:
-                date = matches.group(2)
-
-            matches = PLAC_REGEX.match(current_line)
-            if matches:
-                place = matches.group(2)
-
     def parse_head(self, lines, start_index):
         level = 0
         for index, line in enumerate(lines[start_index + 1:]):
@@ -424,10 +384,10 @@ def handle_uploaded_file(tree):
             event = Event()
             event.indi = ind
             event.event_type = e['type']
-            event.date = e.get('date', None)
+            event.date = e.get('date', '')
             event.year = df.extract_year(event.date) if event.date else None
-            event.place = e.get('place', None)
-            event.description = e.get('description', None)
+            event.place = e.get('place', '')
+            event.description = e.get('description', '')
             events.append(event)
 
         individuals.append(ind)
@@ -450,10 +410,10 @@ def handle_uploaded_file(tree):
             event = FamilyEvent()
             event.family = fam
             event.event_type = e['type']
-            event.date = e.get('date', None)
+            event.date = e.get('date', '')
             event.year = df.extract_year(event.date) if event.date else None
-            event.place = e.get('place', None)
-            event.description = e.get('description', None)
+            event.place = e.get('place', '')
+            event.description = e.get('description', '')
             family_events.append(event)
         for c in props.children:
             child = Child()

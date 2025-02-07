@@ -1,12 +1,14 @@
 from django.contrib import admin
 from .models import (
+    Archive,
     Child, 
     Event,
     Family,
-    FamilyEvent, 
-    Profile, 
-    Tree, 
-    Individual
+    FamilyEvent,
+    Individual,
+    Profile,
+    Source, 
+    Tree
 )
 
 
@@ -43,3 +45,11 @@ class EventAdmin(admin.ModelAdmin):
 @admin.register(FamilyEvent)
 class FamilyEventAdmin(admin.ModelAdmin):
     list_display = ['id', 'event_type', 'family', 'date', 'place', 'description', 'year']
+
+@admin.register(Archive)
+class ArchiveAdmin(admin.ModelAdmin):
+    list_display = ['title', 'tree']
+
+@admin.register(Source)
+class SourceAdmin(admin.ModelAdmin):
+    list_display = ['title', 'archive', 'web_link']

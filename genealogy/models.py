@@ -24,12 +24,12 @@ class Profile(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
-    date_of_birth = models.DateField(blank=True, null=True)
+    date_of_birth = models.DateField(blank=True)
     photo = models.ImageField(
         upload_to=users_file_location,
         blank=True
     )
-    description = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True)
     sex = models.CharField(
         max_length=1,
         choices=SEX_CHOICES,
@@ -51,13 +51,11 @@ class Tree(models.Model):
     )
     description = models.CharField(
         blank=True,
-        null=True,
         max_length=200
     )
     gedcom_file = models.FileField(
         upload_to=users_file_location,
-        blank=True,
-        null=True
+        blank=True
     )
 
     def clean(self):
@@ -81,12 +79,12 @@ class Individual(models.Model):
         ("U", "Unknown"),
     )
 
-    indi_id = models.CharField(max_length=20, null=True, blank=True)
+    indi_id = models.CharField(max_length=20, blank=True)
     tree = models.ForeignKey(Tree, on_delete=models.CASCADE, related_name="individuals")
-    first_name = models.CharField(max_length=100, null=True, blank=True)
-    last_name = models.CharField(max_length=100, null=True, blank=True)
+    first_name = models.CharField(max_length=100, blank=True)
+    last_name = models.CharField(max_length=100, blank=True)
     sex = models.CharField(max_length=10, choices=SEX_CHOICES, default="U")
-    death_cause = models.CharField(max_length=100, null=True, blank=True)
+    death_cause = models.CharField(max_length=100, blank=True)
     alive = models.BooleanField(default=False)
     added = models.DateField(auto_now_add=True)
     last_updated = models.DateField(auto_now=True)
@@ -182,11 +180,17 @@ class Individual(models.Model):
             return Event.objects.get(indi=self, event_type='birth')
         except Event.DoesNotExist:
             return None
+        except Event.MultipleObjectsReturned:
+            print(f"Multiple birth events found for {self}. Returning None.")
+            return None
         
     def get_death_event(self):
         try:
             return Event.objects.get(indi=self, event_type='death')
         except Event.DoesNotExist:
+            return None
+        except Event.MultipleObjectsReturned:
+            print(f"Multiple death events found for {self}. Returning None.")
             return None
         
     def has_birth_event(self):
@@ -200,7 +204,7 @@ class Individual(models.Model):
     
 
 class Family(models.Model):
-    family_id = models.CharField(max_length=20, null=True, blank=True)
+    family_id = models.CharField(max_length=20, blank=True)
     tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
     husband = models.ForeignKey(
         Individual,
@@ -249,15 +253,11 @@ class Child(models.Model):
     family = models.ForeignKey(
         Family,
         on_delete=models.CASCADE,
-        null=True,
-        blank=True,
         related_name="children"                   
     )
     indi = models.ForeignKey(
         Individual,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        on_delete=models.CASCADE
     )
     relation = models.CharField(
         choices=RELATIONS,
@@ -289,10 +289,10 @@ class Event(models.Model):
 
     indi = models.ForeignKey(Individual, on_delete=models.CASCADE)
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
-    date = models.CharField(max_length=100, null=True, blank=True)
+    date = models.CharField(max_length=100, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
-    place = models.CharField(max_length=255, blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
+    place = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
 
     def clean(self):
         try:
@@ -337,9 +337,9 @@ class FamilyEvent(models.Model):
 
     family = models.ForeignKey(Family, on_delete=models.CASCADE)
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
-    date = models.CharField(max_length=100, null=True, blank=True)
+    date = models.CharField(max_length=100, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
-    place = models.CharField(max_length=255, blank=True, null=True)
+    place = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
@@ -353,6 +353,28 @@ class FamilyEvent(models.Model):
     def __str__(self):
         return f"{self.get_event_type_display()} for {self.family}"
 
+
+class Archive(models.Model):
+    title = models.CharField(max_length=100)
+    archive_id = models.CharField(max_length=20, blank=True)
+    tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
+    publisher = models.CharField(max_length=100, blank=True)
+    author = models.CharField(max_length=100, blank=True)
+    description = models.CharField(max_length=1000, blank=True)
+    web_link = models.CharField(max_length=500, blank=True)
+
+    def __str__(self) -> str:
+        return self.title
+    
+class Source(models.Model):
+    archive = models.ForeignKey(Archive, on_delete=models.CASCADE)
+    title = models.CharField(max_length=100)
+    web_link = models.CharField(max_length=500, blank=True)
+    description = models.CharField(max_length=1000, blank=True)
+    publishing_date = models.CharField(max_length=50, blank=True)
+
+    def __str__(self) -> str:
+        return self.title
 
 # Handle cleanup of family, so there are no families with only one person and no children
 # or families with only children
@@ -380,8 +402,6 @@ def handle_family_cleanup(sender, instance, **kwargs):
                     old_family = Family.objects.get(id=partner_single_parent_families[0].id)
                     child.family = old_family
                     child.save()
-
-            family.delete()
 
 
     children = Child.objects.filter(indi=instance)
