@@ -1451,7 +1451,7 @@ def add_images(request, id):
             messages.success(request, "Image uploaded successfully!")
             return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
         else:
-            messages.error(request, "There was a problem uploading the image!")
+            messages.error(request, "There was a problem uploading the image. Did you select one?")
             return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
     else:
         form = ImageAddForm()

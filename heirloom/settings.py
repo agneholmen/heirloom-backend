@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_htmx',
     'easy_thumbnails',
+    'image_uploader_widget',
 ]
 
 MIDDLEWARE = [

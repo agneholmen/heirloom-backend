@@ -8,6 +8,7 @@ from .models import Event, FamilyEvent, Image, Individual, Profile, Tree
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
 
+from image_uploader_widget.widgets import ImageUploaderWidget
 
 class LoginForm(forms.Form):
     username = forms.CharField()
@@ -233,11 +234,11 @@ class PersonNamesForm(forms.ModelForm):
         self.helper.layout = Layout(
             Row('identifier'),
             Row(
-                Column('first_name', css_class="form-outline mb4"),
-                Column('last_name', css_class="form-outline mb4")
+                Column('first_name', css_class="form-outline mb-1"),
+                Column('last_name', css_class="form-outline mb-1")
             ),
             Row(
-                Column('sex', css_class="form-outline mb4")
+                Column('sex', css_class="form-outline mb-1")
             )
         )
 
@@ -266,7 +267,7 @@ class ExistingChildrenForm(forms.Form):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row(
-                Column('existing_children', css_class="form-outline mb4")
+                Column('existing_children', css_class="form-outline mb-1")
             )
         )
 
@@ -281,7 +282,7 @@ class ExistingChildrenForm(forms.Form):
 class PersonNamesFamilyForm(PersonNamesForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb-1"))
 
     family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
@@ -298,8 +299,8 @@ class EventShortForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row(
-                Column('date', css_class="form-outline mb4"),
-                Column('place', css_class="form-outline mb4")
+                Column('date', css_class="form-outline mb-1"),
+                Column('place', css_class="form-outline mb-1")
             )
         )
         if self.prefix:
@@ -318,8 +319,8 @@ class FindExistingPersonForm(forms.Form):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row('identifier'),
-            Row('person', css_class="form-outline mb4"),
-            Row('selected_person', css_class="form-outline mb4"),
+            Row('person', css_class="form-outline mb-1"),
+            Row('selected_person', css_class="form-outline mb-1"),
             Row(
                 Column(Submit('submit', 'Add Person', css_class="btn btn-primary")),
                 Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
@@ -348,7 +349,7 @@ class AddExistingPersonChildForm(FindExistingPersonForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['identifier'].initial = 'add_existing_person'
-        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb-1"))
 
     family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
@@ -375,7 +376,7 @@ class SelectEventForm(forms.Form):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('event_type', css_class="form-outline mb4")
+            Row('event_type', css_class="form-outline mb-1")
         )
 
 class AddEventForm(forms.ModelForm):
@@ -386,9 +387,9 @@ class AddEventForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row('identifier'),
-            Row('date', css_class="form-outline mb4"),
-            Row('place', css_class="form-outline mb4"),
-            Row('description', css_class="form-outline mb4"),
+            Row('date', css_class="form-outline mb-1"),
+            Row('place', css_class="form-outline mb-1"),
+            Row('description', css_class="form-outline mb-1"),
             Row(
                 Column(Submit('submit', 'Add Event', css_class="btn btn-primary")),
                 Column(Button('cancel', 'Cancel', css_class="btn btn-secondary", data_bs_dismiss="modal")),
@@ -418,9 +419,9 @@ class EditEventForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row('identifier'),
-            Row('date', css_class="form-outline mb4"),
-            Row('place', css_class="form-outline mb4"),
-            Row('description', css_class="form-outline mb4"),
+            Row('date', css_class="form-outline mb-1"),
+            Row('place', css_class="form-outline mb-1"),
+            Row('description', css_class="form-outline mb-1"),
             Row(
                 Column(Submit('submit', 'Save', css_class="btn btn-primary")),
                 Column(Submit('delete', 'Delete', css_class="btn btn-danger")),
@@ -446,7 +447,7 @@ class EditEventForm(forms.ModelForm):
 class AddFamilyEventForm(AddEventForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb-1"))
 
     family = forms.TypedChoiceField(
         choices=[],  # Set initial queryset as empty
@@ -472,7 +473,7 @@ class AddFamilyEventForm(AddEventForm):
 class EditFamilyEventForm(EditEventForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper.layout.insert(3, Row('family', css_class="form-outline mb4"))
+        self.helper.layout.insert(3, Row('family', css_class="form-outline mb-1"))
 
     family = forms.IntegerField(initial=0, widget=forms.HiddenInput())
 
@@ -511,15 +512,33 @@ class ImageAddForm(forms.ModelForm):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('title', css_class="form-outline mb4"),
-            Row('description', css_class="form-outline mb4"),
-            Row('image', css_class="form-outline mb4"),
-            Row(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="form-outline mb4")
+            Row('title', css_class="form-outline mb-1"),
+            Row('description', css_class="form-outline mb-1"),
+            Row(Div('image', template='image_uploader_widget/widget/image_uploader_widget.html'), css_class="form-outline mb-1 iuw-light"),
+            Row(Div(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="d-flex justify-content-end mt-1"), css_class="form-outline")
         )
+
+    def clean_image(self):
+        SUPPORTED_FILE_TYPES = ('png', 'jpg', 'jpeg')
+
+        image = self.cleaned_data.get("image", None)
+        extension = str(image).split('.')[-1]
+
+        if not image:
+            raise forms.ValidationError("You must select a file to upload!")
+        
+        if extension.lower() not in SUPPORTED_FILE_TYPES:
+            raise forms.ValidationError("Only PNG, JPG, and JPEG files are supported!")
+        
+        return image
+
 
     class Meta:
         model = Image
         fields = ['title', 'description', 'image']
+        widgets = {
+            'image': ImageUploaderWidget(),
+        }
 
 class ImageEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -528,9 +547,9 @@ class ImageEditForm(forms.ModelForm):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('title', css_class="form-outline mb4"),
-            Row('description', css_class="form-outline mb4"),
-            Row(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="form-outline mb4")
+            Row('title', css_class="form-outline mb-1"),
+            Row('description', css_class="form-outline mb-1"),
+            Row(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="form-outline mb-1")
         )
 
     class Meta:
