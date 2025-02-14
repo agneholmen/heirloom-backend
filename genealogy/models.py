@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import date
+from easy_thumbnails.files import get_thumbnailer
 
 from .date_functions import extract_year
 
@@ -444,3 +445,6 @@ def image_post_delete_handler(sender, **kwargs):
     if hasattr(image, 'image'):
         storage, path = image.image.storage, image.image.path
         storage.delete(path)
+
+        thumbnailer = get_thumbnailer(image.image)
+        thumbnailer.delete_thumbnails()

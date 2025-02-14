@@ -49,15 +49,6 @@
     object-fit: cover;
 }
 
-.profile-photo {
-    transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-.profile-photo:hover {
-    box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2);
-    transform: scale(1.05);
-}
-
 .profile-details {
     flex: 1;
 }
