@@ -19,14 +19,6 @@ def home(request):
         {'section': 'home'}
     )
 
-@login_required
-def images(request):
-    return render(
-        request,
-        'genealogy/images.html',
-        {'section': 'images'}
-    )
-
 def user_login(request):
     if request.method == 'POST':
         form = LoginForm(request.POST)

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Add Images{% endblock title %}
+{% block css_include %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load bootstrap_icons %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/images.css' %}">
+{% endblock css_include %}
+
+{% block content %}
+    <div id="images-container">
+        <div id="images-navbar">
+            <a href="{% url 'person' person.id %}"><button type="button" class="btn btn-primary">{% bs_icon 'arrow-left' size="1.2em" color="#FFFFFF" %}Back to person</button></a>
+            <a href="{% url 'view_images' person.id %}"><button class="btn btn-success" type="button">View Images</button></a>
+        </div>
+        <div id="add-images-container">
+            <p>Add image for {{ person }}.</p>
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                {% crispy form %}
+            </form>
+        </div>
+    </div>
+{% endblock content %}
+

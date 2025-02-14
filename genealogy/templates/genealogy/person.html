@@ -3,6 +3,7 @@
 {% block title %}{{ person.get_name_years }}{% endblock title %}
 {% block css_include %}
 {% load static %}
+{% load thumbnail %}
 {% load bootstrap_icons %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/person.css' %}">
 {% endblock %}
@@ -19,8 +20,10 @@
             </li>
             <li><a href="#" class="dropdown-item" hx-get="{% url 'edit_relationships' person.id %}" hx-target="#modal-content"
                     type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal"
-                    hx-swap="innerHTML">Edit Relationships</a></li>
+                    hx-swap="innerHTML">Edit Relationships</a>
+            </li>
         </ul>
+        <a href="{% url 'view_images' person.id %}"><button class="btn btn-primary" type="button">Images</button></a>
         <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
             hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
         <button class="btn btn-danger" type="button" disabled>Delete Person</button>
@@ -51,7 +54,11 @@
     <div class="person-container">
         <div class="profile-header">
             <div class="profile-picture">
-                <img src="{{ person_image }}" alt="Profile Picture" class="profile-picture-image" />
+                {% if default_image %}
+                <img src="{{ default_image }}" alt="Profile Picture" class="profile-picture-image" />
+                {% elif profile_photo %}
+                <img src="{% thumbnail profile_photo.image 150x0 crop='smart' %}" alt="Profile Picture" class="profile-picture-image">
+                {% endif %}
             </div>
             <div class="profile-details">
                 <h1>{{ person|default_if_none:"" }}</h1>

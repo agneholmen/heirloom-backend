@@ -5,6 +5,8 @@ from .models import (
     Event,
     Family,
     FamilyEvent,
+    Image,
+    Image_Individual,
     Individual,
     Profile,
     Source, 
@@ -53,3 +55,11 @@ class ArchiveAdmin(admin.ModelAdmin):
 @admin.register(Source)
 class SourceAdmin(admin.ModelAdmin):
     list_display = ['title', 'archive', 'web_link']
+
+@admin.register(Image)
+class ImageAdmin(admin.ModelAdmin):
+    list_display = ['user', 'tree', 'title', 'created', 'slug', 'image']
+
+@admin.register(Image_Individual)
+class Image_IndividualAdmin(admin.ModelAdmin):
+    list_display = ['indi', 'image']

@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from itertools import chain
 
@@ -17,6 +17,8 @@ from ..forms import (
     EventShortForm, 
     ExistingChildrenForm,
     FindExistingPersonForm,
+    ImageAddForm,
+    ImageEditForm,
     PersonNamesFamilyForm,
     PersonNamesForm,
     RemoveRelationshipForm,
@@ -26,7 +28,9 @@ from ..models import (
     Child, 
     Event, 
     Family, 
-    FamilyEvent, 
+    FamilyEvent,
+    Image,
+    Image_Individual,
     Individual,
     Tree
 )
@@ -299,7 +303,8 @@ def person(request, id):
         {
             'section': 'search',
             'person': this_person,
-            'person_image': get_default_image(this_person.sex),
+            'default_image': None if this_person.profile_image else get_default_image(this_person.sex),
+            'profile_photo': this_person.profile_image if this_person.profile_image else None,
             'birth': birth,
             'death': death,
             'father': father,
@@ -1404,6 +1409,107 @@ def edit_family_event(request, id):
             'event_type_text': str(event)
         }
     )
+
+# person/<int:id>/images
+@login_required
+def view_images(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+
+    return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
+
+# person/<int:id>/images/add
+@login_required
+def add_images(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    if request.method == 'POST':
+        form = ImageAddForm(request.POST, request.FILES)
+        if form.is_valid():
+            image = form.save(commit=False)
+            image.tree = this_person.tree
+            image.user = request.user
+            image.save()
+            mapping = Image_Individual()
+            mapping.indi = this_person
+            mapping.image = image
+            mapping.save()
+            if not this_person.profile_image:
+                this_person.profile_image = image
+                this_person.save()
+            messages.success(request, "Image uploaded successfully!")
+            return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
+        else:
+            messages.error(request, "There was a problem uploading the image!")
+            return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
+    else:
+        form = ImageAddForm()
+
+    return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
+
+# person/<int:person_id>/images/<int:image_id>/edit
+@login_required
+def edit_image(request, person_id, image_id):
+    try:
+        this_person = Individual.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Individual.DoesNotExist:
+        raise Http404("Image does not exist.") 
+
+    if request.method == 'POST':
+        form = ImageEditForm(request.POST, instance=this_image)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Image updated successfully!")
+        else:
+            messages.error(request, "There was a problem updating the image!")
+        return render(request, 'genealogy/edit_image.html', {'person': this_person, 'image': this_image, 'form': form})
+    else:  
+        form = ImageEditForm(instance=this_image)
+
+    return render(request, 'genealogy/edit_image.html', {'person': this_person, 'image': this_image, 'form': form})
+
+@login_required
+def delete_image(request, person_id, image_id):
+    try:
+        this_person = Individual.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+    
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Individual.DoesNotExist:
+        raise Http404("Image does not exist.")   
+    
+    this_image.delete()
+    messages.success(request, "Image successfully deleted!")
+
+    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+
+    return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
 def get_single_parent_children(person):
     families = Family.objects.filter((Q(husband=person) & Q(wife=None)) | (Q(wife=person) & Q(husband=None)))

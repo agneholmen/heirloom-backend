@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Images{% endblock title %}
+{% block css_include %}
+{% load static %}
+{% load thumbnail %}
+{% load bootstrap_icons %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/images.css' %}">
+{% endblock css_include %}
+
+{% block content %}
+    <div id="images-container">
+        <div id="images-navbar">
+            <a href="{% url 'person' person.id %}"><button type="button" class="btn btn-primary">{% bs_icon 'arrow-left' size="1.2em" color="#FFFFFF" %}Back to person</button></a>
+            <a href="{% url 'add_images' person.id %}"><button class="btn btn-success" type="button">Add Image</button></a>
+        </div>
+        <div id="view-images-container">
+            {% if images %}
+            {% for image in images %}
+            <div class="image-container">
+                <a href="{% url 'edit_image' person.id image.id %}">
+                    <img src="{% thumbnail image.image 150x0 crop='smart' %}">
+                </a>
+                <span>{{ image.title }}</span>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p>This person has no images uploaded.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %}
+

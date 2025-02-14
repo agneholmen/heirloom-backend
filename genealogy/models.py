@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import date
 
@@ -88,6 +89,7 @@ class Individual(models.Model):
     alive = models.BooleanField(default=False)
     added = models.DateField(auto_now_add=True)
     last_updated = models.DateField(auto_now=True)
+    profile_image = models.ForeignKey('Image', on_delete=models.SET_NULL, null=True, blank=True, related_name="profile_of")
 
     class Meta:
         ordering = ['last_name']
@@ -372,6 +374,27 @@ class Source(models.Model):
 
     def __str__(self) -> str:
         return self.title
+    
+class Image(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created = models.DateField(auto_now_add=True)
+    slug = models.SlugField(max_length=200, blank=True)
+    image = models.ImageField(upload_to=users_file_location)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created']
+
+class Image_Individual(models.Model):
+    indi = models.ForeignKey(Individual, on_delete=models.CASCADE)
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
 
 # Handle cleanup of family, so there are no families with only one person and no children
 # or families with only children
@@ -412,4 +435,12 @@ def tree_post_delete_handler(sender, **kwargs):
     tree = kwargs['instance']
     if hasattr(tree, 'gedcome_file'):
         storage, path = tree.gedcom_file.storage, tree.gedcom_file.path
+        storage.delete(path)
+
+# Removes the Image file when you remove an Image instance
+@receiver(post_delete, sender=Image)
+def image_post_delete_handler(sender, **kwargs):
+    image = kwargs['instance']
+    if hasattr(image, 'image'):
+        storage, path = image.image.storage, image.image.path
         storage.delete(path)
