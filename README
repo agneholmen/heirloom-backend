@@ -2,8 +2,7 @@ Do the following to start up the project:
 1. python -m venv .venv
 2. Activate your new venv (the command depends on your system)
 3. pip install -r requirements.txt
-4. python manage.py makemigrations
-5. python manage.py migrate
-6. python manage.py createsuperuser (and follow the instructions)
-7. python manage.py runserver
-8. Access the page through your web browser with URL localhost:8000/genealogy/
+4. python manage.py migrate
+5. python manage.py createsuperuser (and follow the instructions)
+6. python manage.py runserver
+7. Access the page through your web browser with URL localhost:8000/genealogy/
