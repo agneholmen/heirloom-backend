@@ -513,9 +513,7 @@ class ImageAddForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row('title', css_class="form-outline mb-1"),
-            Row('description', css_class="form-outline mb-1"),
-            Row(Div('image', template='image_uploader_widget/widget/image_uploader_widget.html'), css_class="form-outline mb-1 iuw-light"),
-            Row(Div(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="d-flex justify-content-end mt-1"), css_class="form-outline")
+            Row('description', css_class="form-outline mb-1")
         )
 
     def clean_image(self):
