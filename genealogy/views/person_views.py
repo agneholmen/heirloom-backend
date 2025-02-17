@@ -297,6 +297,8 @@ def person(request, id):
         else:
             event['icon'] = '📆'
 
+    has_images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image')).exists()
+
     return render(
         request,
         'genealogy/person.html',
@@ -312,7 +314,8 @@ def person(request, id):
             'siblings': siblings,
             'half_siblings': half_siblings,
             'families': families,
-            'events': timeline_events
+            'events': timeline_events,
+            'has_images': has_images
         }
     )
 
@@ -1488,6 +1491,7 @@ def edit_image(request, person_id, image_id):
 
     return render(request, 'genealogy/edit_image.html', {'person': this_person, 'image': this_image, 'form': form})
 
+# person/<int:person_id>/images/<int:image_id>/delete
 @login_required
 def delete_image(request, person_id, image_id):
     try:
@@ -1510,6 +1514,33 @@ def delete_image(request, person_id, image_id):
     images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
+
+@login_required
+def change_profile_photo(request, id):
+    try:
+        this_person = Individual.objects.get(id=id)
+        if this_person.tree.user != request.user:
+            raise Http404("Individual not found in any of your trees.")
+    except Individual.DoesNotExist:
+        raise Http404("Individual does not exist.")
+
+    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+    profile_photo = this_person.profile_image
+
+    if request.method == "POST":
+        image_id = request.POST.get('photo_id')
+        selected_image = Image.objects.get(pk=int(image_id))
+
+        if this_person.profile_image != selected_image:
+            this_person.profile_image = selected_image
+            this_person.save()
+
+            messages.success(request, "Profile photo successfully updated!")
+        else:
+            messages.info(request, "Same profile photo selected. No change!")
+        return redirect('person', id=this_person.id)
+
+    return render(request, 'genealogy/select_profile_photo_modal.html', {'person': this_person, 'images': images, 'profile_photo': profile_photo})
 
 def get_single_parent_children(person):
     families = Family.objects.filter((Q(husband=person) & Q(wife=None)) | (Q(wife=person) & Q(husband=None)))

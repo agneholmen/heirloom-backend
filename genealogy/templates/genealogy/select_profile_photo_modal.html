@@ -1,0 +1,26 @@
+{% load crispy_forms_tags %}
+{% load static %}
+{% load thumbnail %}
+
+<div class="modal-header">
+    <h5 class="modal-title">Select Profile Photo</h5>
+</div>
+<div class="modal-body">
+    <div id="error-messages"></div>
+    <div id="images-container">
+        {% for image in images %}
+        <div class="image-container{% if profile_photo and profile_photo.id == image.id %} image-container-selected{% endif %}" id="image-{{ image.id }}">
+            <img src="{% thumbnail image.image 150x0 crop='smart' %}" alt="Image" class="profile-photo-image">
+        </div>
+        {% endfor %}
+    </div>
+    <div id="button-container">
+        <button type="button" class="btn btn-primary" id="save-button" 
+            hx-post="{% url 'change_profile_photo' person.id %}" hx-include="[name='photo_id']"
+            hx-trigger="click" hx-target="body" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-on::before-request="validateInput(event)">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    </div>
+    <input type="hidden" name="photo_id" id="selectedPhotoId" value="{% if profile_photo %}{{ profile_photo.id }}{% endif %}">
+</div>
+<script src="{% static 'js/select_profile_photo_modal.js' %}"></script>

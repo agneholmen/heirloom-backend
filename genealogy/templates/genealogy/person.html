@@ -6,6 +6,7 @@
 {% load thumbnail %}
 {% load bootstrap_icons %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/person.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/select_profile_photo.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -53,7 +54,12 @@
     </div>
     <div class="person-container">
         <div class="profile-header">
+            {% if has_images %}
+            <div class="profile-picture change-profile-picture" hx-get="{% url 'change_profile_photo' person.id %}"
+                hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modal">
+            {% else %}
             <div class="profile-picture">
+            {% endif %}
                 {% if default_image %}
                 <img src="{{ default_image }}" alt="Profile Picture" class="profile-picture-image" />
                 {% elif profile_photo %}

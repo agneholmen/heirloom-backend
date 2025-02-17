@@ -23,6 +23,7 @@ urlpatterns = [
     path('person/<int:id>/images/add', person_views.add_images, name='add_images'),
     path('person/<int:person_id>/images/<int:image_id>/edit', person_views.edit_image, name='edit_image'),
     path('person/<int:person_id>/images/<int:image_id>/delete', person_views.delete_image, name='delete_image'),
+    path('person/<int:id>/images/change-profile-photo', person_views.change_profile_photo, name='change_profile_photo'),
     path('search/', tree_views.search, name='search'),
     path('search/update-result-row/<int:id>', tree_views.update_search_result_row, name='update_result_row'),
     path('tree/', tree_views.family_tree, name='family_tree'),

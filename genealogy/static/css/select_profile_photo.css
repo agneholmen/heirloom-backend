@@ -1,0 +1,34 @@
+#images-container {
+    display: flex;
+    max-width: 800px;
+    justify-content: left;
+}
+
+.image-container {
+    margin: 15px;
+    padding: 5px;
+    border: 2px solid transparent;
+    transition: 0.3s;
+    border-radius: 5px;
+}
+
+.image-container:hover {
+    cursor: pointer;
+}
+
+.image-container-selected {
+    border-color: 3px solid #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.profile-photo-image {
+    max-width: 150px;
+    max-height: 150px;
+    border-radius: 5px;
+    object-fit: cover;
+}
+
+#button-container {
+    display: flex;
+    justify-content: space-around;
+}
