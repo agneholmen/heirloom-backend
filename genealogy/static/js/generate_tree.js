@@ -9,6 +9,31 @@ const firstPersonX = 100;
 const firstPersonY = 550;
 
 document.addEventListener('DOMContentLoaded', function() {
+    const panel = document.getElementById("settings-panel");
+    const button = document.getElementById("toggle-panel-button");
+
+    button.addEventListener("click", () => {
+        panel.classList.toggle("panel-open");
+        button.textContent = panel.classList.contains("panel-open") ? "→" : "←";
+    });
+
+    const colorSelector = document.getElementById('color-selector');
+    const treeContainer = document.getElementById('tree-container');
+
+    const defaultColor = colorSelector.value;
+
+    colorSelector.addEventListener("change", function(event) {
+        var selectedColor = event.target.value;
+        treeContainer.style.setProperty("background-color", selectedColor, "important");
+    });
+
+    const resetButton = document.getElementById('reset-color-button');
+
+    resetButton.addEventListener("click", () => {
+        treeContainer.style.removeProperty("background-color");
+        colorSelector.value = defaultColor;
+    });
+
     if (typeof familyData === 'undefined') {
         return
     }

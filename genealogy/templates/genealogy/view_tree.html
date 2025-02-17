@@ -23,10 +23,17 @@
         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
         data-bs-target="#modal">Add First Person</button>
     {% else %}
-        <div id="tree-container" style="position: relative;">
+        <div id="tree-container">
             <svg width="1000" height="1000" style="position: absolute;" id="tree-svg-container">
             </svg>
         </div>
+        <div id="settings-panel">
+            <h3>Tree settings</h3>
+            <label for="tree-color">Background color</label>
+            <input type="color" id="color-selector" name="color" value="#f7f9fc"><br>
+            <button id="reset-color-button" class="btn btn-danger">Reset</button>
+        </div>
+        <button id="toggle-panel-button">←</button>
     {% endif %}
     {% include 'genealogy/modal_container.html' %}
 {% endblock content %}
