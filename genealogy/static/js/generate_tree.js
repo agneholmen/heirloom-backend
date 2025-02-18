@@ -7,6 +7,7 @@ const coupleLineHeight = 48;
 const curveDistance = 24;
 const firstPersonX = 100;
 const firstPersonY = 550;
+const childrenYPath = 30;
 
 document.addEventListener('DOMContentLoaded', function() {
     const panel = document.getElementById("settings-panel");
@@ -18,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const colorSelector = document.getElementById('color-selector');
-    const treeContainer = document.getElementById('tree-container');
+    var treeContainer = document.getElementById('tree-container');
 
     const defaultColor = colorSelector.value;
 
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     calculatePositions(familyData);
+    calculatePositionsFamily(familyData);
     drawTree(familyData);
     treeContainer = document.getElementById('tree-container');
     htmx.process(treeContainer);
@@ -67,6 +69,21 @@ function drawTree(node) {
     } else {
         treeContainer.appendChild(createPersonBox(node));
     }
+
+    if (node.partner) {
+        treeContainer.appendChild(createPersonBox(node.partner));
+        svgContainer.appendChild(createCouplePath(node))
+    }
+
+    if (node.children) {
+        node.children.forEach((child, index) => {
+            treeContainer.appendChild(createPersonBox(child));
+            var paths = createChildrenPaths(node.children);
+            for (const path of paths) {
+                svgContainer.appendChild(path);
+            }
+        });
+    }
 }
 
 function calculatePositions(node, depth = 0, xOffset = firstPersonX) {
@@ -89,6 +106,28 @@ function calculatePositions(node, depth = 0, xOffset = firstPersonX) {
     }
 
     return { totalWidth: parentOffset - xOffset, node };
+}
+
+function calculatePositionsFamily(node) {
+    if (node.partner) {
+        node.partner.y = node.y;
+        node.partner.x = node.x + (coupleDistance + boxWidth);
+        var childrenCenterX = node.x + boxWidth + (coupleDistance / 2);
+    }
+    else {
+        var childrenCenterX = node.x + (boxWidth / 2);
+    }
+    if (node.children) {
+        var totalWidth = (node.children.length * boxWidth) + ((node.children.length - 1) * coupleDistance);
+        var currentX = childrenCenterX - (totalWidth / 2); 
+        const childrenY = node.y + boxHeight + generationDistance;
+
+        node.children.forEach((child, index) => {
+            child.y = childrenY;
+            child.x = currentX;
+            currentX += boxWidth + coupleDistance;
+        });
+    }
 }
 
 function createPersonBox(personData) {
@@ -167,6 +206,50 @@ function createPersonPath(personData, fatherX, motherX) {
     xPath.setAttribute('d', d);
 
     paths.push(xPath);
+
+    return paths;
+}
+
+function createCouplePath(personData) {
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    var xPath = document.createElementNS(svgNS, 'path');
+    d = `m ${personData.x + boxWidth},${personData.y + boxHeight - coupleLineHeight} h ${coupleDistance}`
+
+    xPath.setAttribute('d', d);
+
+    return xPath;
+}
+
+function createChildrenPaths(childrenData) {
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    var paths = [];
+
+    childrenData.forEach((child, index) => {
+        var yPath = document.createElementNS(svgNS, 'path');
+        d = `m ${child.x + (boxWidth / 2)}, ${child.y} v -${childrenYPath}`
+
+        yPath.setAttribute('d', d);
+
+        paths.push(yPath);
+    });
+
+    if (childrenData.length > 1) {
+        var horizontalPath = document.createElementNS(svgNS, 'path');
+        d = `m ${childrenData[0].x + (boxWidth / 2)}, ${childrenData[0].y - childrenYPath} h ${((childrenData.length - 1) * boxWidth) + ((childrenData.length - 1) * coupleDistance)}`
+
+        horizontalPath.setAttribute('d', d);
+        
+        paths.push(horizontalPath);
+    }
+
+    var verticalPath = document.createElementNS(svgNS, 'path');
+    d = `m ${childrenData[0].x + (((childrenData.length) * boxWidth) + ((childrenData.length - 1) * coupleDistance)) / 2}, ${childrenData[0].y - childrenYPath} v -${generationDistance - childrenYPath + coupleLineHeight}`
+
+    verticalPath.setAttribute('d', d);
+        
+    paths.push(verticalPath);
 
     return paths;
 }

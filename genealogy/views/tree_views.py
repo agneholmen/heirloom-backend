@@ -154,6 +154,19 @@ def view_tree(request, id, person_id):
 
     people_data['parents'] = tree_get_parents(first_person, 1, generations, id)
 
+    family = Family.objects.filter(Q(husband=first_person) | Q(wife=first_person))
+    if family:
+        if family[0].husband == first_person and family[0].wife:
+            people_data['partner'] = get_person_tree_data(family[0].wife)
+        elif family[0].wife == first_person and family[0].husband:
+            people_data['partner'] = get_person_tree_data(family[0].husband)
+
+        children = Child.objects.filter(family=family[0])
+        if children:
+            people_data['children'] = []
+            for child in children:
+                people_data['children'].append(get_person_tree_data(child.indi))
+
     return render(
         request, 
         'genealogy/view_tree.html', 
@@ -164,6 +177,18 @@ def view_tree(request, id, person_id):
             'people': json.dumps(people_data)
         }
     )
+
+def get_person_tree_data(person):
+    return {
+        'first_name': person.first_name,
+        'last_name': person.last_name,
+        'id': person.id,
+        'image': get_default_image(person.sex) if not person.profile_image else get_profile_photo(person),
+        'years': person.get_years(),
+        'person_url': reverse('person', kwargs={'id': person.id}),
+        'tree_url': reverse('view_tree', kwargs={'id': person.tree.id, 'person_id': person.id}),
+        'edit_url': reverse('edit_person', kwargs={'id': person.id})
+    }
 
 # tree/<int:id>/delete
 @login_required

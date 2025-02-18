@@ -1536,8 +1536,7 @@ def change_profile_photo(request, id):
             this_person.save()
 
             messages.success(request, "Profile photo successfully updated!")
-        else:
-            messages.info(request, "Same profile photo selected. No change!")
+
         return redirect('person', id=this_person.id)
 
     return render(request, 'genealogy/select_profile_photo_modal.html', {'person': this_person, 'images': images, 'profile_photo': profile_photo})
