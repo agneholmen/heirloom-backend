@@ -8,6 +8,7 @@ const curveDistance = 24;
 const firstPersonX = 100;
 const firstPersonY = 550;
 const childrenYPath = 30;
+const pathArc = 15;
 
 document.addEventListener('DOMContentLoaded', function() {
     const panel = document.getElementById("settings-panel");
@@ -76,12 +77,12 @@ function drawTree(node) {
     }
 
     if (node.children) {
+        var paths = createChildrenPaths(node.children);
+        for (const path of paths) {
+            svgContainer.appendChild(path);
+        }
         node.children.forEach((child, index) => {
             treeContainer.appendChild(createPersonBox(child));
-            var paths = createChildrenPaths(node.children);
-            for (const path of paths) {
-                svgContainer.appendChild(path);
-            }
         });
     }
 }
@@ -101,8 +102,10 @@ function calculatePositions(node, depth = 0, xOffset = firstPersonX) {
         const firstParent = node.parents[0];
         const lastParent = node.parents[1];
         node.x = (firstParent.x + lastParent.x) / 2;
+        console.log(`${node.first_name} has x ${node.x}`);
     } else {
         node.x = x;
+        console.log(`${node.first_name} has x ${node.x}`);
     }
 
     return { totalWidth: parentOffset - xOffset, node };
@@ -194,14 +197,16 @@ function createPersonPath(personData, fatherX, motherX) {
 
     var yPath = document.createElementNS(svgNS, 'path');
 
-    var d = `m ${personData.x + (boxWidth / 2)},${personData.y} v -${(generationDistance + coupleLineHeight)}`
+    var d = `m ${personData.x + (boxWidth / 2)},${personData.y} 
+             v -${(generationDistance + coupleLineHeight)}`
 
     yPath.setAttribute('d', d);
 
     paths.push(yPath);
 
     var xPath = document.createElementNS(svgNS, 'path');
-    d = `m ${fatherX + boxWidth},${personData.y - generationDistance - coupleLineHeight} h ${motherX - fatherX - boxWidth}`
+    d = `m ${fatherX + boxWidth},${personData.y - generationDistance - coupleLineHeight} 
+         h ${motherX - fatherX - boxWidth}`
 
     xPath.setAttribute('d', d);
 
@@ -214,7 +219,8 @@ function createCouplePath(personData) {
     const svgNS = "http://www.w3.org/2000/svg";
 
     var xPath = document.createElementNS(svgNS, 'path');
-    d = `m ${personData.x + boxWidth},${personData.y + boxHeight - coupleLineHeight} h ${coupleDistance}`
+    d = `m ${personData.x + boxWidth},${personData.y + boxHeight - coupleLineHeight} 
+         h ${coupleDistance}`
 
     xPath.setAttribute('d', d);
 
@@ -226,26 +232,38 @@ function createChildrenPaths(childrenData) {
 
     var paths = [];
 
+    // Create vertical path for middle children
     childrenData.forEach((child, index) => {
-        var yPath = document.createElementNS(svgNS, 'path');
-        d = `m ${child.x + (boxWidth / 2)}, ${child.y} v -${childrenYPath}`
-
-        yPath.setAttribute('d', d);
-
-        paths.push(yPath);
+        if (index !== 0 && index !== (childrenData.length - 1)) {
+            var yPath = document.createElementNS(svgNS, 'path');
+            d = `m ${child.x + (boxWidth / 2)}, ${child.y} 
+                 v -${childrenYPath}`
+    
+            yPath.setAttribute('d', d);
+    
+            paths.push(yPath);
+        }
     });
 
+    // Create horizontal path that goes vertically to children on the left and right
     if (childrenData.length > 1) {
         var horizontalPath = document.createElementNS(svgNS, 'path');
-        d = `m ${childrenData[0].x + (boxWidth / 2)}, ${childrenData[0].y - childrenYPath} h ${((childrenData.length - 1) * boxWidth) + ((childrenData.length - 1) * coupleDistance)}`
+        d = `m ${childrenData[0].x + (boxWidth / 2)}, ${childrenData[0].y} 
+             v -${childrenYPath - pathArc} 
+             a ${pathArc} -${pathArc} 0 0 1 ${pathArc} -${pathArc} 
+             h ${((childrenData.length - 1) * boxWidth) + ((childrenData.length - 1) * coupleDistance) - 2 * pathArc} 
+             a ${pathArc} ${pathArc} 0 0 1 ${pathArc} ${pathArc} 
+             v ${childrenYPath}`
 
         horizontalPath.setAttribute('d', d);
         
         paths.push(horizontalPath);
     }
 
+    // Create vertical path from horizontal path to parents
     var verticalPath = document.createElementNS(svgNS, 'path');
-    d = `m ${childrenData[0].x + (((childrenData.length) * boxWidth) + ((childrenData.length - 1) * coupleDistance)) / 2}, ${childrenData[0].y - childrenYPath} v -${generationDistance - childrenYPath + coupleLineHeight}`
+    d = `m ${childrenData[0].x + (((childrenData.length) * boxWidth) + ((childrenData.length - 1) * coupleDistance)) / 2}, ${childrenData[0].y - childrenYPath} 
+         v -${generationDistance - childrenYPath + coupleLineHeight}`
 
     verticalPath.setAttribute('d', d);
         

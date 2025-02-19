@@ -111,6 +111,7 @@
     stroke: #a1a1a1;
     stroke-width: 2;
     stroke-linecap: round;
+    fill: none;
 }
 
 #tree-container #tree-svg-container {
@@ -119,7 +120,7 @@
 
 #tree-container {
     position: relative;
-    min-height: 100vh;
+    min-height: 110vh;
     width: 100%;
     border-radius: 10px;
     border: 2px solid #ccc;

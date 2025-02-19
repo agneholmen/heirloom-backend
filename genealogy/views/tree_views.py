@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -141,16 +141,7 @@ def view_tree(request, id, person_id):
 
     generations = 3
 
-    people_data = {
-        'first_name': first_person.first_name,
-        'last_name': first_person.last_name,
-        'id': first_person.id,
-        'image': get_default_image(first_person.sex) if not first_person.profile_image else get_profile_photo(first_person),
-        'years': first_person.get_years(),
-        'person_url': reverse('person', kwargs={'id': first_person.id}),
-        'tree_url': reverse('view_tree', kwargs={'id': id, 'person_id': first_person.id}),
-        'edit_url': reverse('edit_person', kwargs={'id': first_person.id})
-    }
+    people_data = get_person_tree_data(first_person)
 
     people_data['parents'] = tree_get_parents(first_person, 1, generations, id)
 
@@ -161,7 +152,8 @@ def view_tree(request, id, person_id):
         elif family[0].wife == first_person and family[0].husband:
             people_data['partner'] = get_person_tree_data(family[0].husband)
 
-        children = Child.objects.filter(family=family[0])
+        birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
+        children = Child.objects.filter(family=family[0]).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
         if children:
             people_data['children'] = []
             for child in children:

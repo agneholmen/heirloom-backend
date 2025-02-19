@@ -18,7 +18,7 @@
 
 .image-container-selected {
     border-color: 3px solid #007bff;
-    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    box-shadow: 0 0 10px rgb(0, 123, 255);
 }
 
 .profile-photo-image {
