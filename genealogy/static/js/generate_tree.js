@@ -5,7 +5,7 @@ const generationDistance = 88;
 const familyDistance = 88;
 const coupleLineHeight = 48;
 const curveDistance = 24;
-const firstPersonX = 100;
+const firstPersonX = 150;
 const firstPersonY = 550;
 const childrenYPath = 30;
 const pathArc = 15;
@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     calculatePositions(familyData);
+    var offSetX = 500 - (boxWidth / 2) - familyData.x;
+    var offSetY = (generationDistance * 2.5) + (boxHeight * 2) - familyData.y;
+    updateOffset(familyData, offSetX, offSetY);
     calculatePositionsFamily(familyData);
     drawTree(familyData);
     treeContainer = document.getElementById('tree-container');
@@ -102,13 +105,21 @@ function calculatePositions(node, depth = 0, xOffset = firstPersonX) {
         const firstParent = node.parents[0];
         const lastParent = node.parents[1];
         node.x = (firstParent.x + lastParent.x) / 2;
-        console.log(`${node.first_name} has x ${node.x}`);
     } else {
         node.x = x;
-        console.log(`${node.first_name} has x ${node.x}`);
     }
 
     return { totalWidth: parentOffset - xOffset, node };
+}
+
+function updateOffset(node, offSetX, offSetY) {
+    node.y = node.y + offSetY;
+    node.x = node.x + offSetX;
+    if (node.parents.length > 0) {
+        node.parents.forEach((parent, index) => {
+            updateOffset(parent, offSetX, offSetY);
+        });
+    }
 }
 
 function calculatePositionsFamily(node) {
@@ -234,7 +245,7 @@ function createChildrenPaths(childrenData) {
 
     // Create vertical path for middle children
     childrenData.forEach((child, index) => {
-        if (index !== 0 && index !== (childrenData.length - 1)) {
+        if ((index !== 0 && index !== (childrenData.length - 1)) || (childrenData.length == 1)) {
             var yPath = document.createElementNS(svgNS, 'path');
             d = `m ${child.x + (boxWidth / 2)}, ${child.y} 
                  v -${childrenYPath}`
