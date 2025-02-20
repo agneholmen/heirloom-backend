@@ -29,6 +29,23 @@ def extract_year(date_str):
         # Translate month names to English
         date_str = translate_months(date_str)
 
+        if date_str.isdigit():
+            if len(date_str) == 8 or len(date_str) == 6:
+                year = date_str[:4]
+                return int(year)
+            
+        year_match = re.search(r'(\d\d\d\d)-\d\d-\d\d', date_str)
+        if year_match:
+            year = year_match.group(1)
+
+            return int(year)
+        
+        year_match = re.search(r'(\d\d\d\d)-\d\d', date_str)
+        if year_match:
+            year = year_match.group(1)
+
+            return int(year)
+
         # Use regex to isolate date components
         # This regex is more flexible to capture years in various contexts
         year_match = re.search(r'\b(\d{4})\b', date_str)
