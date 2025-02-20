@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     calculatePositions(familyData);
-    var offSetX = 500 - (boxWidth / 2) - familyData.x;
+    var offSetX = 600 - (boxWidth / 2) - familyData.x;
     var offSetY = (generationDistance * 2.5) + (boxHeight * 2) - familyData.y;
     updateOffset(familyData, offSetX, offSetY);
     calculatePositionsFamily(familyData);
