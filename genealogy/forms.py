@@ -42,9 +42,25 @@ class UserRegistrationForm(forms.ModelForm):
         return data
     
 class UserEditForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('first_name', css_class="col-md-4"),
+                Column('last_name', css_class="col-md-4")
+            ),
+            Row('email', css_class="form-outline mb-1")
+        )
+
     class Meta:
         model = get_user_model()
         fields = ['first_name', 'last_name', 'email']
+        widgets = {
+            'email': forms.EmailInput(attrs={"placeholder": "Email"}),
+        }
 
     def clean_email(self):
         data = self.cleaned_data['email']
@@ -58,9 +74,24 @@ class UserEditForm(forms.ModelForm):
         return data
 
 class ProfileEditForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('date_of_birth', css_class="form-outline mb-1"),
+            Row('description', css_class="form-outline mb-1"),
+            Row('sex', css_class="form-outline mb-1"),
+        )
+
     class Meta:
         model = Profile
         fields = ['date_of_birth', 'photo', 'description', 'sex']
+        widgets = {
+            'photo': ImageUploaderWidget(),
+            'date_of_birth': forms.DateInput(attrs={"type": "date"}),
+        }
 
 class NewTreeForm(forms.Form):
     def __init__(self, *args, **kwargs):

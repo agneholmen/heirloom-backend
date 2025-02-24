@@ -1,14 +1,21 @@
 {% extends "base.html" %}
 
 {% block title %}Edit Profile{% endblock title %}
+{% load static %}
+{% load crispy_forms_tags %}
 
 {% block content %}
     <h1>Edit Profile</h1>
     <p>Edit your profile using the following form:</p>
     <form method="post" enctype="multipart/form-data">
-        {{ user_form.as_p }}
-        {{ profile_form.as_p }}
+        {% crispy user_form %}
+        {% crispy profile_form %}
+        <div class="row form-outline mb-1 iuw-light">
+            <div class="col-md">
+            {{ profile_form.photo }}
+            </div>
+        </div>
         {% csrf_token %}
-        <p><input type="submit" value="Update profile"></p>
+        <input type="submit" value="Update profile" class="btn btn-primary mt-3 mb-3">
     </form>
 {% endblock content %}
