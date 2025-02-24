@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse
 
 from itertools import chain
 
@@ -523,13 +524,31 @@ def delete_person(request, id):
         raise Http404("Individual does not exist.")
     
     if request.method == "POST":
+        referer_url = request.META.get('HTTP_REFERER')
+        # Need to redirect to different person if deleting from person page
+        if 'person/' in referer_url:
+            related_person = find_close_relative(this_person)
+
         try:
             this_person.delete()
             messages.success(
                 request,
                 "Person successfully removed!"
             )
-            return HttpResponse(status=204)
+            if 'person/' in referer_url:
+                if related_person:
+                    # Apparently the URL is not updated when using HX-Request so this fix is needed. Stupid...
+                    if "HX-Request" in request.headers:
+                        new_url = reverse('person', kwargs={'id': related_person.id})
+                        response = JsonResponse({})
+                        response['HX-Redirect'] = new_url
+                        return response
+                    else:
+                        return redirect(new_url)
+                else:
+                    return redirect('tree', id=this_person.tree.id)
+            else:
+                return HttpResponse(status=204)
         except:
             messages.error(request, "There was a problem removing the person!")
             return HttpResponse(status=400)
@@ -1549,3 +1568,32 @@ def get_single_parent_children(person):
         return children
     else:
         return None
+    
+def find_close_relative(person):
+    families = Family.objects.filter(Q(husband=person) | Q(wife=person))
+    if families:
+        for family in families:
+            if family.husband == person and family.wife:
+                return family.wife
+            elif family.wife == person and family.husband:
+                return family.husband
+    father = person.get_father()
+    if father:
+        return father
+    
+    mother = person.get_mother()
+    if mother:
+        return mother
+
+    if families:            
+        for family in families:
+            children = Child.objects.filter(family=family)
+            for child in children:
+                return child.indi
+            
+    random_individual = Individual.objects.filter(tree=person.tree).exclude(id=person.id).first()
+    
+    return random_individual
+    
+            
+    
