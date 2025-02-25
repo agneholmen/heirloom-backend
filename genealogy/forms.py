@@ -16,6 +16,22 @@ class LoginForm(forms.Form):
 
 
 class UserRegistrationForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Column('username', css_class="col-md-4"),
+                Column('first_name', css_class="col-md-4"),
+                Column('last_name', css_class="col-md-4")
+            ),
+            Row('email', css_class="form-outline mb-1"),
+            Row('password', css_class="form-outline mb-1"),
+            Row('password2', css_class="form-outline mb-1")
+        )
+
     password = forms.CharField(
         label='Password',
         widget=forms.PasswordInput
@@ -27,7 +43,10 @@ class UserRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ['username', 'first_name', 'email']
+        fields = ['username', 'first_name', 'last_name', 'email']
+        widgets = {
+            'email': forms.EmailInput(attrs={"placeholder": "Email"}),
+        }
 
     def clean_password2(self):
         cd = self.cleaned_data
