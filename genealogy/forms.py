@@ -3,7 +3,7 @@ from django.forms import Select
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
-from .models import Event, FamilyEvent, Image, Individual, Profile, Tree
+from .models import Event, FamilyEvent, Image, Person, Profile, Tree
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
@@ -282,7 +282,7 @@ class PersonNamesForm(forms.ModelForm):
         return cleaned_data
 
     class Meta:
-        model = Individual
+        model = Person
         fields = ['first_name', 'last_name', 'sex']
         widgets = {
             'sex': forms.RadioSelect,

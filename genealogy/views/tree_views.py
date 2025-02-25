@@ -9,7 +9,7 @@ from django.urls import reverse
 from .common import *
 from ..forms import EditTreeForm, NewTreeForm, SearchForm
 from .. import gedcom
-from ..models import Child, Event, Family, FamilyEvent, Individual, Tree
+from ..models import Child, Event, Family, FamilyEvent, Person, Tree
 
 from functools import reduce
 
@@ -82,7 +82,7 @@ def family_tree(request):
                 new_tree.description = cd['description']
                 new_tree.save()
 
-                # If a GEDCOM file was uploaded, add all Individual, Family, and Child to DB
+                # If a GEDCOM file was uploaded, add all Person, Family, and Child to DB
                 if new_tree.gedcom_file:
                     gedcom.handle_uploaded_file(new_tree)
 
@@ -95,7 +95,7 @@ def family_tree(request):
         form = NewTreeForm()
 
     trees = Tree.objects.filter(user=request.user).order_by("name")
-    trees = trees.annotate(number_of_individuals=Count("individuals"))
+    trees = trees.annotate(number_of_persons=Count("persons"))
 
     return render(
         request,
@@ -117,8 +117,8 @@ def view_tree(request, id, person_id):
     except Tree.DoesNotExist:
         raise Http404("Tree does not exist.")
     
-    this_tree.number_of_individuals = Tree.objects.filter(id=id).annotate(number_of_individuals=Count("individuals")).values_list("number_of_individuals", flat=True).first()
-    if this_tree.number_of_individuals == 0:
+    this_tree.number_of_persons = Tree.objects.filter(id=id).annotate(number_of_persons=Count("persons")).values_list("number_of_persons", flat=True).first()
+    if this_tree.number_of_persons == 0:
         return render(
             request, 
             'genealogy/view_tree.html', 
@@ -129,15 +129,15 @@ def view_tree(request, id, person_id):
         )
     
     if person_id == 0:
-        most_recent_person = Individual.objects.filter(tree=this_tree).order_by('id').first()
+        most_recent_person = Person.objects.filter(tree=this_tree).order_by('id').first()
         return redirect('view_tree', id=id, person_id=most_recent_person.id)
 
     try:
-        first_person = Individual.objects.get(id=person_id)
+        first_person = Person.objects.get(id=person_id)
         if first_person.tree != this_tree:
-            raise Http404("Individual not found in this tree.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in this tree.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
 
     generations = 3
 
@@ -152,12 +152,12 @@ def view_tree(request, id, person_id):
         elif family[0].wife == first_person and family[0].husband:
             people_data['partner'] = get_person_tree_data(family[0].husband)
 
-        birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
+        birth_year_subquery = Event.objects.filter(person=OuterRef('person'), event_type='birth').values('year')[:1]
         children = Child.objects.filter(family=family[0]).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
         if children:
             people_data['children'] = []
             for child in children:
-                people_data['children'].append(get_person_tree_data(child.indi))
+                people_data['children'].append(get_person_tree_data(child.person))
 
     return render(
         request, 
@@ -260,36 +260,36 @@ def download_tree(request, id):
         family_id_counter += 1
     Family.objects.bulk_update(family_instances, ["family_id"])
 
-    individual_instances = list(Individual.objects.filter(tree=this_tree))
-    for indi in individual_instances:
-        indi.indi_id = f"@I{str(indi_id_counter)}@"
+    individual_instances = list(Person.objects.filter(tree=this_tree))
+    for person in individual_instances:
+        person.indi_id = f"@I{str(indi_id_counter)}@"
         indi_id_counter += 1
 
-        content += f"0 {indi.indi_id} INDI\n"
+        content += f"0 {person.indi_id} INDI\n"
         name = ""
-        if indi.first_name:
-            name += f"{indi.first_name} "
-        if indi.last_name:
-            name += f"/{indi.last_name}/"
+        if person.first_name:
+            name += f"{person.first_name} "
+        if person.last_name:
+            name += f"/{person.last_name}/"
         if name:
             content += f"1 NAME {name}\n"
-            if indi.first_name:
-                content += f"2 GIVN {indi.first_name}\n"
-            if indi.last_name:
-                content += f"2 SURN {indi.last_name}\n"
+            if person.first_name:
+                content += f"2 GIVN {person.first_name}\n"
+            if person.last_name:
+                content += f"2 SURN {person.last_name}\n"
         
-        content += f"1 SEX {indi.sex}\n"
+        content += f"1 SEX {person.sex}\n"
         try:
-            child = Child.objects.get(indi=indi)
+            child = Child.objects.get(person=person)
             content += f"1 FAMC {child.family.family_id}\n"
         except:
             pass
 
-        indi_families = Family.objects.filter(Q(husband=indi) or Q(wife=indi))
+        indi_families = Family.objects.filter(Q(husband=person) or Q(wife=person))
         for fam in indi_families:
             content += f"1 FAMS {fam.family_id}\n"
 
-        indi_events = Event.objects.filter(indi=indi)
+        indi_events = Event.objects.filter(person=person)
         for event in indi_events:
             content += f"1 {EVENT_MAPPING[event.event_type]}\n"
             if event.date:
@@ -299,7 +299,7 @@ def download_tree(request, id):
             if event.description:
                 content += f"2 NOTE {event.description}\n"
 
-    Individual.objects.bulk_update(individual_instances, ["indi_id"])
+    Person.objects.bulk_update(individual_instances, ["indi_id"])
 
     for fam in family_instances:
         content += f"0 {fam.family_id} FAM\n"
@@ -310,7 +310,7 @@ def download_tree(request, id):
 
         children = Child.objects.filter(family=fam)
         for child in children:
-            content += f"1 CHIL {child.indi.indi_id}\n"
+            content += f"1 CHIL {child.person.indi_id}\n"
 
         family_events = FamilyEvent.objects.filter(family=fam)
         for event in family_events:
@@ -331,7 +331,7 @@ def download_tree(request, id):
 @login_required
 def get_tree_list(request):
     trees = Tree.objects.filter(user=request.user)
-    trees = trees.annotate(number_of_individuals=Count("individuals"))
+    trees = trees.annotate(number_of_persons=Count("persons"))
 
     return render(request, 'genealogy/tree_list.html', {'trees': trees})
 
@@ -485,7 +485,7 @@ def search(request):
                 final_query = final_query & name_conditions
 
             results_per_page = cd['results_per_page']
-            people = Individual.objects.filter(final_query)
+            people = Person.objects.filter(final_query)
             if birth_conditions:
                 birth_query = Q(event__event_type='birth') & reduce(lambda x, y: x & y, birth_conditions)
                 people = people.filter(birth_query)
@@ -529,11 +529,11 @@ def search(request):
 @login_required
 def update_search_result_row(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     return render(
         request,

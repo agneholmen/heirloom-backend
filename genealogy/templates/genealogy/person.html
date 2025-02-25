@@ -27,7 +27,9 @@
         <a href="{% url 'view_images' person.id %}"><button class="btn btn-primary" type="button">Images</button></a>
         <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
             hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
-        <button class="btn btn-danger" type="button" disabled>Delete Person</button>
+        <button class="btn btn-danger" type="button" hx-get="{% url 'delete_person' person.id %}"
+            hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
+            data-bs-toggle="modal" data-bs-target="#modal">Delete Person</button>
         <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add Person</button>
         <ul class="dropdown-menu">
             <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
@@ -143,7 +145,7 @@
                     <div class="category">
                         <h3>Siblings</h3>
                         {% for sibling in siblings  %}
-                            <a href="{% url 'person' sibling.indi.id %}" class="person-card">{{ sibling.indi.get_name_years }}</a>
+                            <a href="{% url 'person' sibling.person.id %}" class="person-card">{{ sibling.person.get_name_years }}</a>
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -151,7 +153,7 @@
                     <div class="category">
                         <h3>Half-siblings</h3>
                         {% for half_sibling in half_siblings %}
-                            <a href="{% url 'person' half_sibling.indi.id %}" class="person-card">{{ half_sibling.indi.get_name_years }}</a>
+                            <a href="{% url 'person' half_sibling.person.id %}" class="person-card">{{ half_sibling.person.get_name_years }}</a>
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -174,7 +176,7 @@
                                 <strong>Children</strong>
                                 {% if family.children %}
                                     {% for child in family.children %}
-                                        <a href="{% url 'person' child.indi.id %}" class="person-card">{{ child.indi.get_name_years }}</a>
+                                        <a href="{% url 'person' child.person.id %}" class="person-card">{{ child.person.get_name_years }}</a>
                                     {% endfor %}
                                 {% else %}
                                     <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_child' person.id %}" 

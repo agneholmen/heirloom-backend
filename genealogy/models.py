@@ -74,7 +74,7 @@ class Tree(models.Model):
             models.UniqueConstraint(fields=['user', 'name'], name='User and name combination')
         ]
 
-class Individual(models.Model):
+class Person(models.Model):
     SEX_CHOICES = (
         ("M", "Male"),
         ("F", "Female"),
@@ -82,7 +82,7 @@ class Individual(models.Model):
     )
 
     indi_id = models.CharField(max_length=20, blank=True)
-    tree = models.ForeignKey(Tree, on_delete=models.CASCADE, related_name="individuals")
+    tree = models.ForeignKey(Tree, on_delete=models.CASCADE, related_name="persons")
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
     sex = models.CharField(max_length=10, choices=SEX_CHOICES, default="U")
@@ -97,14 +97,14 @@ class Individual(models.Model):
 
     def get_father(self):
         try:
-            family = Family.objects.filter(children__indi=self).first()
+            family = Family.objects.filter(children__person=self).first()
             return family.husband
         except:
             return None
         
     def get_mother(self):
         try:
-            family = Family.objects.filter(children__indi=self).first()
+            family = Family.objects.filter(children__person=self).first()
             return family.wife
         except:
             return None
@@ -177,7 +177,7 @@ class Individual(models.Model):
 
     def get_birth_event(self):
         try:
-            return Event.objects.get(indi=self, event_type='birth')
+            return Event.objects.get(person=self, event_type='birth')
         except Event.DoesNotExist:
             return None
         except Event.MultipleObjectsReturned:
@@ -186,7 +186,7 @@ class Individual(models.Model):
         
     def get_death_event(self):
         try:
-            return Event.objects.get(indi=self, event_type='death')
+            return Event.objects.get(person=self, event_type='death')
         except Event.DoesNotExist:
             return None
         except Event.MultipleObjectsReturned:
@@ -194,10 +194,10 @@ class Individual(models.Model):
             return None
         
     def has_birth_event(self):
-        return Event.objects.filter(indi=self, event_type='birth').exists()
+        return Event.objects.filter(person=self, event_type='birth').exists()
     
     def has_death_event(self):
-        return Event.objects.filter(indi=self, event_type='death').exists()
+        return Event.objects.filter(person=self, event_type='death').exists()
 
     def __str__(self):
         return " ".join(filter(None, [self.first_name, self.last_name]))
@@ -207,14 +207,14 @@ class Family(models.Model):
     family_id = models.CharField(max_length=20, blank=True)
     tree = models.ForeignKey(Tree, on_delete=models.CASCADE)
     husband = models.ForeignKey(
-        Individual,
+        Person,
         on_delete=models.SET_NULL,
         related_name="families_as_husband",
         null=True,
         blank=True
     )
     wife = models.ForeignKey(
-        Individual,
+        Person,
         on_delete=models.SET_NULL,
         related_name="families_as_wife",
         null=True,
@@ -255,8 +255,8 @@ class Child(models.Model):
         on_delete=models.CASCADE,
         related_name="children"                   
     )
-    indi = models.ForeignKey(
-        Individual,
+    person = models.ForeignKey(
+        Person,
         on_delete=models.CASCADE
     )
     relation = models.CharField(
@@ -267,7 +267,7 @@ class Child(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['family', 'indi'], name='Individual and family combination')
+            models.UniqueConstraint(fields=['family', 'person'], name='Person and family combination')
         ]
         verbose_name_plural = "Children"
 
@@ -287,7 +287,7 @@ class Event(models.Model):
         # Add other event types as needed
     ]
 
-    indi = models.ForeignKey(Individual, on_delete=models.CASCADE)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     date = models.CharField(max_length=100, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -296,24 +296,24 @@ class Event(models.Model):
 
     def clean(self):
         try:
-            birth_event = Event.objects.get(indi=self.indi, event_type='birth')
+            birth_event = Event.objects.get(person=self.person, event_type='birth')
             if birth_event.pk != self.pk:
-                raise ValidationError("An individual can only have one birth event.")
+                raise ValidationError("A person can only have one birth event.")
         except:
             pass
         try:
-            death_event = Event.objects.get(indi=self.indi, event_type='death')
+            death_event = Event.objects.get(person=self.person, event_type='death')
             if death_event.pk != self.pk:
-                raise ValidationError("An individual can only have one death event.")
+                raise ValidationError("A person can only have one death event.")
         except:
             pass
         
     @staticmethod
     def get_or_new(person, event_type):
         try:
-            return Event.objects.get(indi=person, event_type=event_type)
+            return Event.objects.get(person=person, event_type=event_type)
         except:
-            return Event(indi=person, event_type=event_type)
+            return Event(person=person, event_type=event_type)
 
     def save(self, *args, **kwargs):
         if self.date:
@@ -324,7 +324,7 @@ class Event(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.get_event_type_display()} for {self.indi}"
+        return f"{self.get_event_type_display()} for {self.person}"
     
 
 class FamilyEvent(models.Model):
@@ -393,13 +393,13 @@ class Image(models.Model):
     class Meta:
         ordering = ['-created']
 
-class Image_Individual(models.Model):
-    indi = models.ForeignKey(Individual, on_delete=models.CASCADE)
+class Image_Person(models.Model):
+    person = models.ForeignKey(Person, on_delete=models.CASCADE)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
 
 # Handle cleanup of family, so there are no families with only one person and no children
 # or families with only children
-@receiver(pre_delete, sender=Individual)
+@receiver(pre_delete, sender=Person)
 def handle_family_cleanup(sender, instance, **kwargs):
     families = Family.objects.filter(models.Q(husband=instance) | models.Q(wife=instance))
     for family in families:
@@ -425,7 +425,7 @@ def handle_family_cleanup(sender, instance, **kwargs):
                     child.save()
 
 
-    children = Child.objects.filter(indi=instance)
+    children = Child.objects.filter(person=instance)
     for child in children:
         if (child.family.husband and not child.family.wife) or (child.family.wife and not child.family.husband) and child.family.children.count() == 1:
             child.family.delete()

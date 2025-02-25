@@ -16,15 +16,15 @@
 {% endblock %}
 
 {% block content %}
-    {% if tree.number_of_individuals == 0 %}
-        <p>You don't have any individuals in your tree.</p>
+    {% if tree.number_of_persons == 0 %}
+        <p>You don't have any people in your tree.</p>
         <p>Add one by clicking here:</p>
         <button type="button" class="btn btn-primary" hx-get="{% url 'add_person' tree.id %}" 
         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
         data-bs-target="#modal">Add First Person</button>
     {% else %}
         <div id="tree-container">
-            <svg width="1200" height="1000" style="position: absolute;" id="tree-svg-container">
+            <svg id="tree-svg-container">
             </svg>
         </div>
         <div id="settings-panel">

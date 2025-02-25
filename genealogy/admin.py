@@ -6,8 +6,8 @@ from .models import (
     Family,
     FamilyEvent,
     Image,
-    Image_Individual,
-    Individual,
+    Image_Person,
+    Person,
     Profile,
     Source, 
     Tree
@@ -24,8 +24,8 @@ class TreeAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'upload_date', 'name', 'gedcom_file']
     raw_id_fields = ['user']
 
-@admin.register(Individual)
-class IndividualAdmin(admin.ModelAdmin):
+@admin.register(Person)
+class PersonAdmin(admin.ModelAdmin):
     list_display = [
         'id', 'indi_id', 'tree', 'first_name', 'last_name', 'sex', 'death_cause'
     ]
@@ -38,11 +38,11 @@ class FamilyAdmin(admin.ModelAdmin):
 
 @admin.register(Child)
 class ChildAdmin(admin.ModelAdmin):
-    list_display = ['family', 'indi', 'relation']
+    list_display = ['family', 'person', 'relation']
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['id', 'event_type', 'indi', 'date', 'place', 'description', 'year']
+    list_display = ['id', 'event_type', 'person', 'date', 'place', 'description', 'year']
 
 @admin.register(FamilyEvent)
 class FamilyEventAdmin(admin.ModelAdmin):
@@ -60,6 +60,6 @@ class SourceAdmin(admin.ModelAdmin):
 class ImageAdmin(admin.ModelAdmin):
     list_display = ['user', 'tree', 'title', 'created', 'slug', 'image']
 
-@admin.register(Image_Individual)
-class Image_IndividualAdmin(admin.ModelAdmin):
-    list_display = ['indi', 'image']
+@admin.register(Image_Person)
+class Image_PersonAdmin(admin.ModelAdmin):
+    list_display = ['person', 'image']

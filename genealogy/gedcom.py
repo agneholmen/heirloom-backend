@@ -3,7 +3,7 @@ import io
 import os
 import re
 
-from genealogy.models import Child, Event, Family, FamilyEvent, Individual, Tree
+from genealogy.models import Child, Event, Family, FamilyEvent, Person, Tree
 import genealogy.date_functions as df
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -358,31 +358,31 @@ def main():
         print("No potential duplicates found!")
 
 def clear_db():
-    Individual.objects.all().delete()
+    Person.objects.all().delete()
 
 def handle_uploaded_file(tree):
     gedcom_tree = Gedcom(tree.gedcom_file.path)
     tree.save()
 
-    # List of Individual entries to bulk add to DB
-    individuals = []
+    # List of Person entries to bulk add to DB
+    persons = []
     families = []
     children = []
     events = []
     family_events = []
 
     for id, props in gedcom_tree.individuals.items():
-        ind = Individual()
-        ind.indi_id = id
-        ind.tree = tree
-        ind.first_name = props.given_name
-        ind.last_name = props.surname
-        ind.sex = props.sex
-        ind.death_cause = props.death['cause']
+        person = Person()
+        person.indi_id = id
+        person.tree = tree
+        person.first_name = props.given_name
+        person.last_name = props.surname
+        person.sex = props.sex
+        person.death_cause = props.death['cause']
 
         for e in props.events:
             event = Event()
-            event.indi = ind
+            event.person = person
             event.event_type = e['type']
             event.date = e.get('date', '')
             event.year = df.extract_year(event.date) if event.date else None
@@ -390,10 +390,10 @@ def handle_uploaded_file(tree):
             event.description = e.get('description', '')
             events.append(event)
 
-        individuals.append(ind)
+        persons.append(person)
 
     # Bulk add objects to improve performance
-    Individual.objects.bulk_create(individuals)
+    Person.objects.bulk_create(persons)
     Event.objects.bulk_create(events)
 
     for id, props in gedcom_tree.families.items():
@@ -401,10 +401,10 @@ def handle_uploaded_file(tree):
         fam.tree = tree
         fam.family_id = id
         if props.husband:
-            husband = Individual.objects.get(tree=tree, indi_id=props.husband)
+            husband = Person.objects.get(tree=tree, indi_id=props.husband)
             fam.husband = husband
         if props.wife:
-            wife = Individual.objects.get(tree=tree, indi_id=props.wife)
+            wife = Person.objects.get(tree=tree, indi_id=props.wife)
             fam.wife = wife
         for e in props.family_events:
             event = FamilyEvent()
@@ -418,8 +418,8 @@ def handle_uploaded_file(tree):
         for c in props.children:
             child = Child()
             child.family = fam
-            child_indi = Individual.objects.get(tree=tree, indi_id=c)
-            child.indi = child_indi
+            child_person = Person.objects.get(tree=tree, indi_id=c)
+            child.person = child_person
             children.append(child)
 
         families.append(fam)

@@ -31,8 +31,8 @@ from ..models import (
     Family, 
     FamilyEvent,
     Image,
-    Image_Individual,
-    Individual,
+    Image_Person,
+    Person,
     Tree
 )
 
@@ -44,24 +44,24 @@ from functools import reduce
 @login_required
 def person(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
 
     birth = this_person.get_birth_event()
     death = this_person.get_death_event()
 
     # Used for sorting siblings, half-siblings, and children based on birth year
-    birth_year_subquery = Event.objects.filter(indi=OuterRef('indi'), event_type='birth').values('year')[:1]
+    birth_year_subquery = Event.objects.filter(person=OuterRef('person'), event_type='birth').values('year')[:1]
 
     father = this_person.get_father()
     mother = this_person.get_mother()
     siblings = None
     half_siblings = None
     families = None
-    children_objects = Child.objects.filter(indi=this_person)
+    children_objects = Child.objects.filter(person=this_person)
     if children_objects:
         siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
 
@@ -72,7 +72,7 @@ def person(request, id):
             half_sibling_queries |= Q(wife=mother) & ~Q(husband=father)
 
         half_sibling_families = Family.objects.filter(half_sibling_queries)
-        half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(indi=this_person).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
+        half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(person=this_person).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
     
     timeline_events = []
     timeline_events_no_year = []
@@ -92,8 +92,8 @@ def person(request, id):
 
             # Add timeline events for children
             for child in family['children']:
-                c_birth = child.indi.get_birth_event()
-                c_death = child.indi.get_death_event()
+                c_birth = child.person.get_birth_event()
+                c_death = child.person.get_death_event()
                 if c_birth and c_birth.year:
                     timeline_events.append(
                         {
@@ -101,11 +101,11 @@ def person(request, id):
                             'description': "", 
                             'date': c_birth.date,
                             'event_type': 'birth', 
-                            'event_type_full': f"Birth of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
+                            'event_type_full': f"Birth of {'son' if child.person.sex == 'M' else 'daughter' if child.person.sex == 'F' else 'child'}",
                             'place': c_birth.place, 
-                            'id': child.indi.id,
+                            'id': child.person.id,
                             'model_type': 'relative',
-                            'family_member': child.indi
+                            'family_member': child.person
                         }
                     )
                 if c_death and death and c_death.year and death.year and c_death.year < death.year:
@@ -115,11 +115,11 @@ def person(request, id):
                             'description': "", 
                             'date': c_death.date,
                             'event_type': 'birth', 
-                            'event_type_full': f"Death of {'son' if child.indi.sex == 'M' else 'daughter' if child.indi.sex == 'F' else 'child'}",
+                            'event_type_full': f"Death of {'son' if child.person.sex == 'M' else 'daughter' if child.person.sex == 'F' else 'child'}",
                             'place': c_death.place, 
-                            'id': child.indi.id,
+                            'id': child.person.id,
                             'model_type': 'relative',
-                            'family_member': child.indi
+                            'family_member': child.person
                         }
                     )
 
@@ -148,7 +148,7 @@ def person(request, id):
 
             families.append(family)
 
-    events = Event.objects.filter(indi=this_person).order_by('year')
+    events = Event.objects.filter(person=this_person).order_by('year')
     family_events = FamilyEvent.objects.filter(family__in=family_objects).order_by('year')
 
     for e in events:
@@ -186,8 +186,8 @@ def person(request, id):
 
     # Add events related to relatives
     for s in chain(siblings or [], half_siblings or []):
-        s_birth = s.indi.get_birth_event()
-        s_death = s.indi.get_death_event()
+        s_birth = s.person.get_birth_event()
+        s_death = s.person.get_death_event()
         if s_birth and birth and s_birth.year and birth.year and s_birth.year > birth.year and not (death and death.year and s_birth.year > death.year):
             timeline_events.append(
                 {
@@ -195,11 +195,11 @@ def person(request, id):
                     'description': "", 
                     'date': s_birth.date,
                     'event_type': 'birth', 
-                    'event_type_full': f"Birth of {'brother' if s.indi.sex == 'M' else 'sister' if s.indi.sex == 'F' else 'sibling'}",
+                    'event_type_full': f"Birth of {'brother' if s.person.sex == 'M' else 'sister' if s.person.sex == 'F' else 'sibling'}",
                     'place': s_birth.place, 
-                    'id': s.indi.id,
+                    'id': s.person.id,
                     'model_type': 'relative',
-                    'family_member': s.indi
+                    'family_member': s.person
                 }
             )
         if s_death and death and s_death.year and death.year and s_death.year < death.year and not (birth and s_death.year < birth.year):
@@ -209,11 +209,11 @@ def person(request, id):
                     'description': "", 
                     'date': s_death.date,
                     'event_type': 'death', 
-                    'event_type_full': f"Death of {'brother' if s.indi.sex == 'M' else 'sister' if s.indi.sex == 'F' else 'sibling'}",
+                    'event_type_full': f"Death of {'brother' if s.person.sex == 'M' else 'sister' if s.person.sex == 'F' else 'sibling'}",
                     'place': s_death.place,
-                    'id': s.indi.id,
+                    'id': s.person.id,
                     'model_type': 'relative',
-                    'family_member': s.indi
+                    'family_member': s.person
                 }
             )
 
@@ -298,7 +298,7 @@ def person(request, id):
         else:
             event['icon'] = '📆'
 
-    has_images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image')).exists()
+    has_images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image')).exists()
 
     return render(
         request,
@@ -324,11 +324,11 @@ def person(request, id):
 @login_required
 def edit_person(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == 'POST':
         person_form = PersonNamesForm(instance=this_person, data=request.POST)
@@ -378,11 +378,11 @@ def edit_person(request, id):
 @login_required
 def edit_relationships(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == 'POST':
         used_form = RemoveRelationshipForm(request.POST)
@@ -390,7 +390,7 @@ def edit_relationships(request, id):
         if used_form.is_valid():
             cd = used_form.cleaned_data
             if cd['relationship_type'] == 'father':
-                this_child = Child.objects.get(indi=this_person, family__husband=cd['related_person_id'])
+                this_child = Child.objects.get(person=this_person, family__husband=cd['related_person_id'])
                 if this_child.family.wife:
                     try:
                         wife_family = Family.objects.get(wife=this_child.family.wife, husband=None)
@@ -407,7 +407,7 @@ def edit_relationships(request, id):
                     this_child.delete()
 
             elif cd['relationship_type'] == 'mother':
-                this_child = Child.objects.get(indi=this_person, family__wife=cd['related_person_id'])
+                this_child = Child.objects.get(person=this_person, family__wife=cd['related_person_id'])
                 if this_child.family.husband:
                     try:
                         husband_family = Family.objects.get(husband=this_child.family.husband, wife=None)
@@ -423,7 +423,7 @@ def edit_relationships(request, id):
                 else:
                     this_child.delete()
             elif cd['relationship_type'] == 'child':
-                this_child = Child.objects.get(Q(indi=cd['related_person_id']) & (Q(family__husband=this_person) | Q(family__wife=this_person)))
+                this_child = Child.objects.get(Q(person=cd['related_person_id']) & (Q(family__husband=this_person) | Q(family__wife=this_person)))
                 if (this_child.family.wife == this_person and not this_child.family.husband) \
                     or (this_child.family.husband == this_person and not this_child.family.wife):
                     if this_child.family.children.count() == 1:
@@ -479,7 +479,7 @@ def edit_relationships(request, id):
         mother_form = None
         children_forms = []
         partner_forms = []
-        children_objects = Child.objects.filter(indi=this_person)
+        children_objects = Child.objects.filter(person=this_person)
         if children_objects:
             if father:
                 father_form = RemoveRelationshipForm(initial={'relationship_type': 'father', 'related_person_id': father.id})
@@ -488,8 +488,8 @@ def edit_relationships(request, id):
 
         children = Child.objects.filter(Q(family__husband=this_person) | Q(family__wife=this_person))
         for c in children:
-            child_form = RemoveRelationshipForm(initial={'relationship_type': 'child', 'related_person_id': c.indi.id})
-            children_forms.append((c.indi, child_form))
+            child_form = RemoveRelationshipForm(initial={'relationship_type': 'child', 'related_person_id': c.person.id})
+            children_forms.append((c.person, child_form))
         families = Family.objects.filter((Q(husband=this_person) & ~Q(wife=None)) | (Q(wife=this_person) & ~Q(husband=None)))
         for f in families:
             if f.husband == this_person:
@@ -517,11 +517,11 @@ def edit_relationships(request, id):
 @login_required
 def delete_person(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == "POST":
         referer_url = request.META.get('HTTP_REFERER')
@@ -559,11 +559,11 @@ def delete_person(request, id):
 @login_required
 def add_person_as_partner(request, id, family_id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
@@ -591,7 +591,7 @@ def add_person_as_partner(request, id, family_id):
 
             cd = person_form.cleaned_data
 
-            partner = Individual()
+            partner = Person()
             partner.tree = this_person.tree
             partner.first_name = cd['first_name']
             partner.last_name = cd['last_name']
@@ -600,12 +600,12 @@ def add_person_as_partner(request, id, family_id):
 
             bf_data = birth_form.cleaned_data
             if bf_data['date'] or bf_data['place']:
-                birth_event = Event(indi=partner, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event = Event(person=partner, event_type='birth', date=bf_data['date'], place=bf_data['place'])
                 birth_event.save()
 
             df_data = death_form.cleaned_data
             if df_data['date'] or df_data['place']:
-                death_event = Event(indi=partner, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event = Event(person=partner, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
             # No existing children to add to new partner
@@ -686,9 +686,9 @@ def add_person_as_partner(request, id, family_id):
                     return response
 
                 try:
-                    partner = Individual.objects.get(id=cd['selected_person'])
-                except Individual.DoesNotExist:
-                    raise Http404("Individual does not exist.")
+                    partner = Person.objects.get(id=cd['selected_person'])
+                except Person.DoesNotExist:
+                    raise Http404("Person does not exist.")
                 
                 if Family.objects.filter((Q(wife=this_person) & Q(husband=partner)) | (Q(wife=partner) & Q(husband=this_person))).exists():
                     errors = {'already_a_family': 'The selected people already have a family!'}
@@ -807,7 +807,7 @@ def families_for_dropdown(request):
 
 def get_families(person):
     try:
-        this_person = Individual.objects.get(id=person)
+        this_person = Person.objects.get(id=person)
         families = Family.objects.filter(Q(husband=this_person) | Q(wife=this_person))
         family_choices = [(family.id, family) for family in families]
         if not Family.objects.filter((Q(husband=this_person) & Q(wife=None)) | (Q(wife=this_person) & Q(husband=None))).exists():
@@ -839,7 +839,7 @@ def get_dropdown_persons(query, id):
         if years:
             db_query_items.append(birth_query)
         tree = Tree.objects.get(id=id)
-        persons = Individual.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))
+        persons = Person.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))
         # If two years included, also search for specific death year
         if len(years) == 2:
             persons = persons.filter(death_query)
@@ -848,7 +848,7 @@ def get_dropdown_persons(query, id):
         persons = persons[:10]
 
     else:
-        persons = Individual.objects.none()
+        persons = Person.objects.none()
 
     return persons
 
@@ -856,11 +856,11 @@ def get_dropdown_persons(query, id):
 @login_required
 def add_person_as_child(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     families = Family.objects.filter(Q(wife=this_person) | Q(husband=this_person))
     family_choices = [(family.id, family) for family in families]
@@ -885,7 +885,7 @@ def add_person_as_child(request, id):
                 return response
             
             cd = person_form.cleaned_data
-            child = Individual()
+            child = Person()
             child.tree = this_person.tree
             child.first_name = cd['first_name']
             child.last_name = cd['last_name']
@@ -894,16 +894,16 @@ def add_person_as_child(request, id):
 
             bf_data = birth_form.cleaned_data
             if bf_data['date'] or bf_data['place']:
-                birth_event = Event(indi=child, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event = Event(person=child, event_type='birth', date=bf_data['date'], place=bf_data['place'])
                 birth_event.save()
 
             df_data = death_form.cleaned_data
             if df_data['date'] or df_data['place']:
-                death_event = Event(indi=child, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event = Event(person=child, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
             new_child = Child()
-            new_child.indi = child
+            new_child.person = child
             if cd['family'] == 0:
                 family = Family()
                 if this_person.sex == 'M':
@@ -934,11 +934,11 @@ def add_person_as_child(request, id):
                     return response
                 
                 try:
-                    child = Individual.objects.get(id=cd['selected_person'])
-                except Individual.DoesNotExist:
-                    raise Http404("Individual does not exist.")
+                    child = Person.objects.get(id=cd['selected_person'])
+                except Person.DoesNotExist:
+                    raise Http404("Person does not exist.")
                 
-                if Child.objects.filter(indi=child).exists():
+                if Child.objects.filter(person=child).exists():
                     errors = {'already_a_child': 'The selected person already has parents!'}
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
@@ -955,7 +955,7 @@ def add_person_as_child(request, id):
                     family = Family.objects.get(id=cd['family'])
 
                 new_child = Child()
-                new_child.indi = child
+                new_child.person = child
                 new_child.family = family
                 new_child.save()
 
@@ -991,11 +991,11 @@ def add_person_as_child(request, id):
 @login_required
 def add_person_as_parent(request, id, parent):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
 
     if parent not in ('father', 'mother'):
         raise Http404("Incorrect parent type.") 
@@ -1018,7 +1018,7 @@ def add_person_as_parent(request, id, parent):
 
             cd = person_form.cleaned_data
 
-            new_parent = Individual()
+            new_parent = Person()
             new_parent.tree = this_person.tree
             new_parent.first_name = cd['first_name']
             new_parent.last_name = cd['last_name']
@@ -1027,17 +1027,17 @@ def add_person_as_parent(request, id, parent):
 
             bf_data = birth_form.cleaned_data
             if bf_data['date'] or bf_data['place']:
-                birth_event = Event(indi=new_parent, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event = Event(person=new_parent, event_type='birth', date=bf_data['date'], place=bf_data['place'])
                 birth_event.save()
 
             df_data = death_form.cleaned_data
             if df_data['date'] or df_data['place']:
-                death_event = Event(indi=new_parent, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event = Event(person=new_parent, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
             # Basically, already has a parent
             try:
-                child = Child.objects.get(indi=this_person)
+                child = Child.objects.get(person=this_person)
                 if parent == 'father' and child.family.wife:
                     child.family.husband = new_parent
                     child.family.save()
@@ -1062,7 +1062,7 @@ def add_person_as_parent(request, id, parent):
                 family.save()
                 new_child = Child()
                 new_child.tree = this_person.tree
-                new_child.indi = this_person
+                new_child.person = this_person
                 new_child.family = family
                 new_child.save()
 
@@ -1081,13 +1081,13 @@ def add_person_as_parent(request, id, parent):
                     return response
                 
                 try:
-                    new_parent = Individual.objects.get(id=cd['selected_person'])
-                except Individual.DoesNotExist:
-                    raise Http404("Individual does not exist.")
+                    new_parent = Person.objects.get(id=cd['selected_person'])
+                except Person.DoesNotExist:
+                    raise Http404("Person does not exist.")
                 
                 # Find existing family. If failure, create new family.
                 try:
-                    child = Child.objects.get(indi=this_person)
+                    child = Child.objects.get(person=this_person)
                     if child.family.husband == new_parent or child.family.wife == new_parent:
                         errors = {'already_a_parent': 'This person is already a parent of the selected child!'}
                         response = JsonResponse({'errors': errors}, status=400)
@@ -1144,7 +1144,7 @@ def add_person_as_parent(request, id, parent):
                     family.save()
 
                     new_child = Child()
-                    new_child.indi = this_person
+                    new_child.person = this_person
                     new_child.family = family
                     new_child.save()
 
@@ -1206,7 +1206,7 @@ def add_person(request, id):
         
         cd = person_form.cleaned_data
         if cd['first_name'] or cd['last_name']:
-            new_person = Individual()
+            new_person = Person()
             new_person.tree = this_tree
             new_person.first_name = cd['first_name']
             new_person.last_name = cd['last_name']
@@ -1215,12 +1215,12 @@ def add_person(request, id):
 
             bf_data = birth_form.cleaned_data
             if bf_data['date'] or bf_data['place']:
-                birth_event = Event(indi=new_person, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event = Event(person=new_person, event_type='birth', date=bf_data['date'], place=bf_data['place'])
                 birth_event.save()
 
             df_data = death_form.cleaned_data
             if df_data['date'] or df_data['place']:
-                death_event = Event(indi=new_person, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event = Event(person=new_person, event_type='death', date=df_data['date'], place=df_data['place'])
                 death_event.save()
 
             messages.success(request, 'New person added successfully!')
@@ -1245,11 +1245,11 @@ def add_person(request, id):
 @login_required
 def event_list(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
 
     if request.method == 'POST':
         form = SelectEventForm(request.POST)
@@ -1298,11 +1298,11 @@ def event_list(request, id):
 @login_required
 def add_event(request, id, event_type):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_event':
@@ -1319,7 +1319,7 @@ def add_event(request, id, event_type):
                     return response
                 cd = form.cleaned_data
                 event = Event()
-                event.indi = this_person
+                event.person = this_person
                 event.event_type = event_type
                 event.date = cd['date']
                 event.place = cd['place']
@@ -1436,13 +1436,13 @@ def edit_family_event(request, id):
 @login_required
 def view_images(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
-    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+    images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
@@ -1450,11 +1450,11 @@ def view_images(request, id):
 @login_required
 def add_images(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     if request.method == 'POST':
         form = ImageAddForm(request.POST, request.FILES)
@@ -1463,8 +1463,8 @@ def add_images(request, id):
             image.tree = this_person.tree
             image.user = request.user
             image.save()
-            mapping = Image_Individual()
-            mapping.indi = this_person
+            mapping = Image_Person()
+            mapping.person = this_person
             mapping.image = image
             mapping.save()
             if not this_person.profile_image:
@@ -1484,17 +1484,17 @@ def add_images(request, id):
 @login_required
 def edit_image(request, person_id, image_id):
     try:
-        this_person = Individual.objects.get(id=person_id)
+        this_person = Person.objects.get(id=person_id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     try:
         this_image = Image.objects.get(id=image_id)
         if this_image.tree.user != request.user:
             raise Http404("Image not found for this user.")
-    except Individual.DoesNotExist:
+    except Person.DoesNotExist:
         raise Http404("Image does not exist.") 
 
     if request.method == 'POST':
@@ -1514,36 +1514,36 @@ def edit_image(request, person_id, image_id):
 @login_required
 def delete_image(request, person_id, image_id):
     try:
-        this_person = Individual.objects.get(id=person_id)
+        this_person = Person.objects.get(id=person_id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
     
     try:
         this_image = Image.objects.get(id=image_id)
         if this_image.tree.user != request.user:
             raise Http404("Image not found for this user.")
-    except Individual.DoesNotExist:
+    except Person.DoesNotExist:
         raise Http404("Image does not exist.")   
     
     this_image.delete()
     messages.success(request, "Image successfully deleted!")
 
-    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+    images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
 @login_required
 def change_profile_photo(request, id):
     try:
-        this_person = Individual.objects.get(id=id)
+        this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:
-            raise Http404("Individual not found in any of your trees.")
-    except Individual.DoesNotExist:
-        raise Http404("Individual does not exist.")
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
 
-    images = Image.objects.filter(id__in=Image_Individual.objects.filter(indi=this_person).values('image'))
+    images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
     profile_photo = this_person.profile_image
 
     if request.method == "POST":
@@ -1564,7 +1564,7 @@ def get_single_parent_children(person):
     families = Family.objects.filter((Q(husband=person) & Q(wife=None)) | (Q(wife=person) & Q(husband=None)))
 
     if families:
-        children = [(child.id, child.indi) for child in Child.objects.filter(family=families[0])]
+        children = [(child.id, child.person) for child in Child.objects.filter(family=families[0])]
         return children
     else:
         return None
@@ -1589,11 +1589,11 @@ def find_close_relative(person):
         for family in families:
             children = Child.objects.filter(family=family)
             for child in children:
-                return child.indi
+                return child.person
             
-    random_individual = Individual.objects.filter(tree=person.tree).exclude(id=person.id).first()
+    random_person = Person.objects.filter(tree=person.tree).exclude(id=person.id).first()
     
-    return random_individual
+    return random_person
     
             
     

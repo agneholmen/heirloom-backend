@@ -2,7 +2,6 @@ const boxHeight = 140;
 const boxWidth = 100;
 const coupleDistance = 48;
 const generationDistance = 66;
-const familyDistance = 88;
 const coupleLineHeight = 48;
 const curveDistance = 24;
 const firstPersonX = 150;
@@ -46,8 +45,37 @@ document.addEventListener('DOMContentLoaded', function() {
     updateOffset(familyData, offSetX, offSetY);
     calculatePositionsFamily(familyData);
     drawTree(familyData);
-    treeContainer = document.getElementById('tree-container');
     htmx.process(treeContainer);
+
+    var isPanning = false;
+    var startX, startY, scrollLeft, scrollTop;
+
+    treeContainer.addEventListener("mousedown", (e) => {
+        isPanning = true;
+        treeContainer.style.cursor = "grabbing"; // Change cursor while dragging
+        startX = e.clientX;
+        startY = e.clientY;
+        scrollLeft = treeContainer.scrollLeft;
+        scrollTop = treeContainer.scrollTop;
+    });
+    
+    treeContainer.addEventListener("mousemove", (e) => {
+        if (!isPanning) return;
+        const xDiff = e.clientX - startX;
+        const yDiff = e.clientY - startY;
+        treeContainer.scrollLeft = scrollLeft - xDiff;
+        treeContainer.scrollTop = scrollTop - yDiff;
+    });
+    
+    treeContainer.addEventListener("mouseup", () => {
+        isPanning = false;
+        treeContainer.style.cursor = "grab";
+    });
+    
+    treeContainer.addEventListener("mouseleave", () => {
+        isPanning = false;
+        treeContainer.style.cursor = "grab";
+    });
 });
 
 function drawTree(node) {
