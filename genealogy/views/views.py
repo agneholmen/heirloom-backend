@@ -9,14 +9,15 @@ from ..forms import (
     UserEditForm,
     UserRegistrationForm
 )
-from ..models import Profile
 
 @login_required
 def home(request):
     return render(
         request,
         'genealogy/home.html',
-        {'section': 'home'}
+        {
+            'section': 'home'
+        }
     )
 
 def user_login(request):
@@ -53,7 +54,6 @@ def register(request):
             )
             # Save the User object
             new_user.save()
-            Profile.objects.create(user=new_user)
             return render(
                 request,
                 'genealogy/register_done.html',

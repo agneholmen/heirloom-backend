@@ -4,5 +4,5 @@
 
 {% block content %}
     <h1>Home</h1>
-    <p>Welcome to the start page.</p>
+    <p>Welcome, {% if request.user.first_name %}{{ request.user.first_name }}{% else %}{{ request.user.username }}{% endif %}, to project Heirloom. Here you can build your own family tree.</p>
 {% endblock content %}
