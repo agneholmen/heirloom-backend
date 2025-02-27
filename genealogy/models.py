@@ -397,6 +397,22 @@ class Image_Person(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
 
+class Image_Comment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
+    comment = models.TextField(blank=False)
+    commented_at = models.DateTimeField(auto_now_add=True)
+
+class Image_Like(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
+    liked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'image'], name='unique_user_image_like')
+        ]
+
 # Handle cleanup of family, so there are no families with only one person and no children
 # or families with only children
 @receiver(pre_delete, sender=Person)

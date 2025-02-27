@@ -1,0 +1,11 @@
+{% load bootstrap_icons %}
+
+<a href="#" hx-get="{% url 'like_image' person.id image.id %}" hx-target="#like-section"
+    hx-trigger="click" hx-swap="innerHTML">
+    {% if has_liked %}
+    {% bs_icon 'hand-thumbs-up-fill' size="1.5em" color="#0d6efd" %}
+    {% else %}
+    {% bs_icon 'hand-thumbs-up' size="1.5em" color="#0d6efd" %}
+    {% endif %} 
+</a>
+<span id="like-count">{{ likes }} like{{ likes|pluralize }}.</span>

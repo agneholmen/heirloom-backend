@@ -3,7 +3,7 @@ from django.forms import Select
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
-from .models import Event, FamilyEvent, Image, Person, Profile, Tree
+from .models import Event, FamilyEvent, Image, Image_Comment, Person, Profile, Tree
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
@@ -603,3 +603,18 @@ class ImageEditForm(forms.ModelForm):
     class Meta:
         model = Image
         fields = ['title', 'description']
+
+class ImageCommentAddForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper(self)
+        self.helper.form_method = 'POST'
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row('comment', css_class="form-outline mb-1")
+        )
+
+    class Meta:
+        model = Image_Comment
+        fields = ['comment']
+        widgets = {'comment': forms.Textarea(attrs={'rows': 2})}

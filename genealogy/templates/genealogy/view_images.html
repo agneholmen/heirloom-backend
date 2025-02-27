@@ -18,10 +18,16 @@
             {% if images %}
             {% for image in images %}
             <div class="image-container">
-                <a href="{% url 'edit_image' person.id image.id %}">
+                <h6>{{ image.title }}</h6>
+                <a href="#" hx-get="{% url 'view_image' person.id image.id %}" 
+                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                    data-bs-target="#modal">
                     <img src="{% thumbnail image.image 150x0 crop='smart' %}">
                 </a>
-                <span>{{ image.title }}</span>
+                <div class="image-container-options">
+                    <a href="{% url 'edit_image' person.id image.id %}"><button class="btn btn-primary" type="button">Edit</button></a>
+                    <a href="{% url 'delete_image' person.id image.id %}"><button class="btn btn-danger" type="button">Delete</button></a>
+                </div>
             </div>
             {% endfor %}
             {% else %}
@@ -29,5 +35,6 @@
             {% endif %}
         </div>
     </div>
+    {% include "genealogy/modal_container.html" %}
 {% endblock content %}
 

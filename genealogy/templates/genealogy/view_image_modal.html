@@ -1,0 +1,13 @@
+<div class="modal-header">
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body view-image-modal">
+    <div id="error-messages"></div>
+    <img src="{{ image.image.url }}" alt="An image">
+    <div id="like-section" class="like-section">
+        {% include "genealogy/image_like_section.html" %}
+    </div>
+    <div id="comments-section" class="comments-section">
+        {% include "genealogy/image_comments_section.html" %}
+    </div>
+</div>

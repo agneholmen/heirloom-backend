@@ -19,6 +19,7 @@ from ..forms import (
     ExistingChildrenForm,
     FindExistingPersonForm,
     ImageAddForm,
+    ImageCommentAddForm,
     ImageEditForm,
     PersonNamesFamilyForm,
     PersonNamesForm,
@@ -31,6 +32,8 @@ from ..models import (
     Family, 
     FamilyEvent,
     Image,
+    Image_Comment,
+    Image_Like,
     Image_Person,
     Person,
     Tree
@@ -1446,6 +1449,31 @@ def view_images(request, id):
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
+# person/<int:person_id>/images/<int:image_id>/view
+@login_required
+def view_image(request, person_id, image_id):
+    try:
+        this_person = Person.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
+
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Image.DoesNotExist:
+        raise Http404("Image does not exist.")
+    
+    has_liked = Image_Like.objects.filter(image=this_image, user=request.user).exists()
+    likes = Image_Like.objects.filter(image=this_image).count()
+
+    comment_form = ImageCommentAddForm()
+    comments = Image_Comment.objects.filter(image=this_image).order_by('-commented_at')
+
+    return render(request, 'genealogy/view_image_modal.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes, 'comments_form': comment_form, 'comments': comments})
+
 # person/<int:id>/images/add
 @login_required
 def add_images(request, id):
@@ -1532,7 +1560,96 @@ def delete_image(request, person_id, image_id):
 
     images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
 
-    return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
+    return redirect('view_images', id=this_person.id)
+
+@login_required
+def like_image(request, person_id, image_id):
+    try:
+        this_person = Person.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
+    
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Person.DoesNotExist:
+        raise Http404("Image does not exist.")   
+    
+    if Image_Like.objects.filter(image=this_image, user=request.user).exists():
+        Image_Like.objects.filter(image=this_image, user=request.user).delete()
+        has_liked = False
+    else:
+        like = Image_Like()
+        like.image = this_image
+        like.user = request.user
+        like.save()
+        has_liked = True
+
+    likes = Image_Like.objects.filter(image=this_image).count()
+
+    return render(request, 'genealogy/image_like_section.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes})
+
+@login_required
+def image_add_comment(request, person_id, image_id):
+    try:
+        this_person = Person.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
+    
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Person.DoesNotExist:
+        raise Http404("Image does not exist.")   
+    
+    if request.method == 'POST':
+        form = ImageCommentAddForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            comment = Image_Comment()
+            comment.image = this_image
+            comment.user = request.user
+            comment.comment = cd['comment']
+            comment.save()
+
+            comments = Image_Comment.objects.filter(image=this_image).order_by('-commented_at')
+            return render(request, 'genealogy/image_comments_section.html', {'person': this_person, 'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
+        else:
+            response = JsonResponse({'errors': dict(form.errors)}, status=400)
+            return response
+
+@login_required
+def image_delete_comment(request, person_id, image_id, comment_id):
+    try:
+        this_person = Person.objects.get(id=person_id)
+        if this_person.tree.user != request.user:
+            raise Http404("Person not found in any of your trees.")
+    except Person.DoesNotExist:
+        raise Http404("Person does not exist.")
+    
+    try:
+        this_image = Image.objects.get(id=image_id)
+        if this_image.tree.user != request.user:
+            raise Http404("Image not found for this user.")
+    except Person.DoesNotExist:
+        raise Http404("Image does not exist.")   
+    
+    try:
+        this_comment = Image_Comment.objects.get(id=comment_id)
+    except Image_Comment.DoesNotExist:
+        raise Http404("Comment does not exist.")
+    
+    this_comment.delete()
+
+    comments = Image_Comment.objects.filter(image=this_image).order_by('-commented_at')
+
+    return render(request, 'genealogy/image_comments_section.html', {'person': this_person, 'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
 
 @login_required
 def change_profile_photo(request, id):
