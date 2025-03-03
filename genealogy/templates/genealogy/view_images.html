@@ -12,18 +12,20 @@
     <div id="images-container">
         <div id="images-navbar">
             <a href="{% url 'person' person.id %}"><button type="button" class="btn btn-primary">{% bs_icon 'arrow-left' size="1.2em" color="#FFFFFF" %}Back to person</button></a>
-            <a href="{% url 'add_images' person.id %}"><button class="btn btn-success" type="button">Add Image</button></a>
+            <a href="{% url 'add_image' person.id %}"><button class="btn btn-success" type="button">Add Image</button></a>
         </div>
         <div id="view-images-container">
             {% if images %}
             {% for image in images %}
             <div class="image-container">
-                <h6>{{ image.title }}</h6>
-                <a href="#" hx-get="{% url 'view_image' person.id image.id %}" 
-                    hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
-                    data-bs-target="#modal">
-                    <img src="{% thumbnail image.image 150x0 crop='smart' %}">
-                </a>
+                <div>
+                    <h6>{{ image.title }}</h6>
+                    <a href="#" hx-get="{% url 'view_image' person.id image.id %}" 
+                        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                        data-bs-target="#modal">
+                        <img src="{% thumbnail image.image 150x0 crop='smart' %}">
+                    </a>
+                </div>
                 <div class="image-container-options">
                     <a href="{% url 'edit_image' person.id image.id %}"><button class="btn btn-primary" type="button">Edit</button></a>
                     <a href="{% url 'delete_image' person.id image.id %}"><button class="btn btn-danger" type="button">Delete</button></a>

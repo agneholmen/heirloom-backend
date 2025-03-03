@@ -102,3 +102,13 @@ def edit_profile(request):
             'section': 'edit_profile'
         }
     )
+
+@login_required
+def community(request):
+    return render(
+        request,
+        'genealogy/community.html',
+        {
+            'section': 'community'
+        }
+    )

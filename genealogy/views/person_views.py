@@ -1476,7 +1476,7 @@ def view_image(request, person_id, image_id):
 
 # person/<int:id>/images/add
 @login_required
-def add_images(request, id):
+def add_image(request, id):
     try:
         this_person = Person.objects.get(id=id)
         if this_person.tree.user != request.user:

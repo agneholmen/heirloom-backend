@@ -54,6 +54,9 @@
     border-radius: 8px;
     padding: 10px;
     align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .image-container img {
@@ -61,10 +64,12 @@
     transition: box-shadow 0.3s ease, transform 0.2s ease;
 }
 
-.image-container .image-container-options {
+.image-container-options {
     margin: 10px 0px;
+    width: 100%;
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
+    justify-content: space-evenly;
 }
 
 .image-container img:hover {

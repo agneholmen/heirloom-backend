@@ -562,7 +562,11 @@ class ImageAddForm(forms.ModelForm):
         self.helper.form_method = 'POST'
         self.helper.form_tag = False
         self.helper.layout = Layout(
-            Row('title', css_class="form-outline mb-1"),
+            Row(
+                Column('title'), 
+                Column('private'),
+                css_class="form-outline mb-1"
+            ),
             Row('description', css_class="form-outline mb-1")
         )
 
@@ -583,7 +587,7 @@ class ImageAddForm(forms.ModelForm):
 
     class Meta:
         model = Image
-        fields = ['title', 'description', 'image']
+        fields = ['title', 'description', 'image', 'private']
         widgets = {
             'image': ImageUploaderWidget(),
         }
@@ -596,13 +600,14 @@ class ImageEditForm(forms.ModelForm):
         self.helper.form_tag = False
         self.helper.layout = Layout(
             Row('title', css_class="form-outline mb-1"),
+            Row('private', css_class="form-outline mb-1"),
             Row('description', css_class="form-outline mb-1"),
             Row(Submit('submit', 'Save', css_class='btn btn-primary'), css_class="form-outline mb-1")
         )
 
     class Meta:
         model = Image
-        fields = ['title', 'description']
+        fields = ['title', 'private', 'description']
 
 class ImageCommentAddForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

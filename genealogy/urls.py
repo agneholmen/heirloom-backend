@@ -5,6 +5,7 @@ from .views import views, person_views, tree_views
 urlpatterns = [
     path('', include('django.contrib.auth.urls')),
     path('', views.home, name='home'),
+    path('community/', views.community, name='community'),
     path('event/<int:id>/edit', person_views.edit_event, name='edit_event'),
     path('family-event/<int:id>/edit', person_views.edit_family_event, name='edit_family_event'),
     path('register/', views.register, name='register'),
@@ -20,7 +21,7 @@ urlpatterns = [
     path('person/<int:id>/add/child', person_views.add_person_as_child, name='add_person_as_child'),
     path('person/<int:id>/add/parent/<str:parent>', person_views.add_person_as_parent, name='add_person_as_parent'),
     path('person/<int:id>/images', person_views.view_images, name='view_images'),
-    path('person/<int:id>/images/add', person_views.add_images, name='add_images'),
+    path('person/<int:id>/images/add', person_views.add_image, name='add_image'),
     path('person/<int:person_id>/images/<int:image_id>/edit', person_views.edit_image, name='edit_image'),
     path('person/<int:person_id>/images/<int:image_id>/delete', person_views.delete_image, name='delete_image'),
     path('person/<int:person_id>/images/<int:image_id>/view', person_views.view_image, name='view_image'),

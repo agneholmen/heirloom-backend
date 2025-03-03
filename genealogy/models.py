@@ -59,6 +59,7 @@ class Tree(models.Model):
         upload_to=users_file_location,
         blank=True
     )
+    private = models.BooleanField(default=False)
 
     def clean(self):
         if Tree.objects.filter(user=self.user, name=self.name).exclude(id=self.id).exists():
@@ -384,6 +385,7 @@ class Image(models.Model):
     created = models.DateField(auto_now_add=True)
     slug = models.SlugField(max_length=200, blank=True)
     image = models.ImageField(upload_to=users_file_location)
+    private = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -445,6 +447,14 @@ def handle_family_cleanup(sender, instance, **kwargs):
     for child in children:
         if (child.family.husband and not child.family.wife) or (child.family.wife and not child.family.husband) and child.family.children.count() == 1:
             child.family.delete()
+
+# Removes the photo file when you remove a Profile instance
+@receiver(post_delete, sender=Profile)
+def profile_post_delete_handler(sender, **kwargs):
+    profile = kwargs['instance']
+    if hasattr(profile, 'photo'):
+        storage, path = profile.photo.storage, profile.photo.path
+        storage.delete(path)
 
 # Removes the GEDCOM file when you remove a Tree instance
 @receiver(post_delete, sender=Tree)

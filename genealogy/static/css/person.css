@@ -1,6 +1,7 @@
 .person-options {
     /* This needs improvement */
     display: flex;
+    justify-content: center;
     align-items: center;
     max-width: 1200px;
     margin: 20px auto;
