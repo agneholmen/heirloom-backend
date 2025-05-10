@@ -6,7 +6,7 @@
 </div>
 <div class="modal-body">
     <div id="error-messages"></div>
-    <form hx-post="{% url 'edit_tree' tree.id %}" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleEditTreeRequest(event)">
+    <form hx-post="{% url 'genealogy:edit_tree' tree.id %}" hx-target="body" hx-swap="outerHTML" hx-on::after-request="handleEditTreeRequest(event)">
         {% csrf_token %}
         {% crispy form %}
     </form>

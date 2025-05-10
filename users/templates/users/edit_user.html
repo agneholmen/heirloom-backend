@@ -1,21 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Profile{% endblock title %}
+{% block title %}Edit User{% endblock title %}
 {% load static %}
 {% load crispy_forms_tags %}
 
 {% block content %}
-    <h1>Edit Profile</h1>
-    <p>Edit your profile using the following form:</p>
+    <h1>Edit User</h1>
+    <p>Edit your user information using the following form:</p>
     <form method="post" enctype="multipart/form-data">
         {% crispy user_form %}
-        {% crispy profile_form %}
         <div class="row form-outline mb-1 iuw-light">
             <div class="col-md">
-            {{ profile_form.photo }}
+            {{ user_form.photo }}
             </div>
         </div>
         {% csrf_token %}
-        <input type="submit" value="Update profile" class="btn btn-primary mt-3 mb-3">
+        <input type="submit" value="Update user" class="btn btn-primary mt-3 mb-3">
     </form>
 {% endblock content %}

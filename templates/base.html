@@ -8,6 +8,7 @@
     {% bootstrap_css %}
     {% bootstrap_javascript %}
     {% block css_include %}{% endblock css_include %}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     {% block javascript_data %}{% endblock %}
@@ -16,46 +17,46 @@
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
         <div class="container-fluid">
             <div class="name-logo">
-                <a class="navbar-brand" href="{% url "home" %}">Project Heirloom</a>
+                <a class="navbar-brand" href="{% url "genealogy:home" %}">Project Heirloom</a>
                 <img src="{% static 'logo.JPG' %}" alt="logo" width="50" height="50">
             </div>
             {% if request.user.is_authenticated %}
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a href="{% url "home" %}" class="nav-link {% if section == "home" %}active{% endif %}">Home</a>
+                    <a href="{% url "genealogy:home" %}" class="nav-link {% if section == "home" %}active{% endif %}">Home</a>
                 </li>
                 <li class="nav-item dropdown">
                     {% if trees %}
                     <a href="#" class="nav-link {% if section == "family_tree" %}active{% endif %}" role="button" aria-expanded="false" data-bs-toggle="dropdown">Family Trees</a>
                     <ul class="dropdown-menu">
                         {% for tree in trees %}
-                        <li><a href="{% url "view_tree" tree.id 0 %}" class="dropdown-item">{{ tree.name }}</a></li>
+                        <li><a href="{% url "genealogy:view_tree" tree.id 0 %}" class="dropdown-item">{{ tree.name }}</a></li>
                         {% endfor %}
                         <li><hr class="dropdown-divider"></li>
-                        <li><a href="{% url "family_tree" %}" class="dropdown-item">Tree Admin</a></li>
+                        <li><a href="{% url "genealogy:family_tree" %}" class="dropdown-item">Tree Admin</a></li>
                     </ul>
                     {% else %}
-                    <a href="{% url "family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Trees</a>
+                    <a href="{% url "genealogy:family_tree" %}" class="nav-link {% if section == "family_tree" %}active{% endif %}">Family Trees</a>
                     {% endif %}
                 </li>
                 <li class="nav-item">
-                    <a href="{% url "search" %}" class="nav-link {% if section == "search" %}active{% endif %}">Search</a>
+                    <a href="{% url "genealogy:search" %}" class="nav-link {% if section == "search" %}active{% endif %}">Search</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url "community" %}" class="nav-link {% if section == "community" %}active{% endif %}">Community</a>
+                    <a href="{% url "genealogy:community" %}" class="nav-link {% if section == "community" %}active{% endif %}">Community</a>
                 </li>
                 <li class="nav-item">
-                    <a href="{% url "edit_profile" %}" class="nav-link {% if section == "edit_profile" %}active{% endif %}">Profile</a>
+                    <a href="{% url "users:edit_user" %}" class="nav-link {% if section == "edit_user" %}active{% endif %}">Profile</a>
                 </li>
             </ul>
             {% endif %}
             {% if request.user.is_authenticated %}
-                <form action="{% url "logout" %}" method="post" class="d-flex">
+                <form action="{% url "users:logout" %}" method="post" class="d-flex">
                     <button type="submit" class="btn btn-primary">Log out</button>
                     {% csrf_token %}
                 </form>
             {% else %}
-                <form action="{% url "login" %}" method="post" class="d-flex">
+                <form action="{% url "users:login" %}" method="post" class="d-flex">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-primary">Log in</button>
                 </form>

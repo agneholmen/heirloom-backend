@@ -19,7 +19,7 @@
     {% if tree.number_of_persons == 0 %}
         <p>You don't have any people in your tree.</p>
         <p>Add one by clicking here:</p>
-        <button type="button" class="btn btn-primary" hx-get="{% url 'add_person' tree.id %}" 
+        <button type="button" class="btn btn-primary" hx-get="{% url 'genealogy:add_person' tree.id %}" 
         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
         data-bs-target="#modal">Add First Person</button>
     {% else %}

@@ -16,7 +16,7 @@
     </div>
     <div id="button-container">
         <button type="button" class="btn btn-primary" id="save-button" 
-            hx-post="{% url 'change_profile_photo' person.id %}" hx-include="[name='photo_id']"
+            hx-post="{% url 'genealogy:change_profile_photo' person.id %}" hx-include="[name='photo_id']"
             hx-trigger="click" hx-target="body" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
             hx-on::before-request="validateInput(event)">Save</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

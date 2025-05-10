@@ -8,16 +8,9 @@ from .models import (
     Image,
     Image_Person,
     Person,
-    Profile,
     Source, 
     Tree
 )
-
-
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'date_of_birth', 'photo', 'description']
-    raw_id_fields = ['user']
 
 @admin.register(Tree)
 class TreeAdmin(admin.ModelAdmin):

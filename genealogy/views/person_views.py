@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 
 from itertools import chain
@@ -43,15 +43,12 @@ from ..date_functions import extract_year
 
 from functools import reduce
 
-# person/<int:id>
+# person/<int:pk>
 @login_required
-def person(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def person(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
 
     birth = this_person.get_birth_event()
     death = this_person.get_death_event()
@@ -323,15 +320,12 @@ def person(request, id):
         }
     )
 
-# person/<int:id>/edit/person
+# person/<int:pk>/edit/person
 @login_required
-def edit_person(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def edit_person(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == 'POST':
         person_form = PersonNamesForm(instance=this_person, data=request.POST)
@@ -360,7 +354,7 @@ def edit_person(request, id):
         elif not df_data['date'] and not df_data['place'] and not death_form.instance.description and death_form.instance.pk:
             death_form.instance.delete()
         response = HttpResponse(status=204)
-        response.headers = {'HX-Trigger': f'update-person-{str(id)}'}
+        response.headers = {'HX-Trigger': f'update-person-{str(pk)}'}
         return response
     else:
         person_form = PersonNamesForm(instance=this_person)
@@ -377,15 +371,12 @@ def edit_person(request, id):
         }
     )
 
-# person/<int:id>/edit/relationships
+# person/<int:pk>/edit/relationships
 @login_required
-def edit_relationships(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def edit_relationships(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == 'POST':
         used_form = RemoveRelationshipForm(request.POST)
@@ -516,15 +507,12 @@ def edit_relationships(request, id):
         }
     )
 
-# person/<int:id>/delete
+# person/<int:pk>/delete
 @login_required
-def delete_person(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def delete_person(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == "POST":
         referer_url = request.META.get('HTTP_REFERER')
@@ -542,14 +530,14 @@ def delete_person(request, id):
                 if related_person:
                     # Apparently the URL is not updated when using HX-Request so this fix is needed. Stupid...
                     if "HX-Request" in request.headers:
-                        new_url = reverse('person', kwargs={'id': related_person.id})
+                        new_url = reverse('genealogy:person', kwargs={'pk': related_person.id})
                         response = JsonResponse({})
                         response['HX-Redirect'] = new_url
                         return response
                     else:
                         return redirect(new_url)
                 else:
-                    return redirect('tree', id=this_person.tree.id)
+                    return redirect('genealogy:tree', pk=this_person.tree.id)
             else:
                 return HttpResponse(status=204)
         except:
@@ -558,15 +546,12 @@ def delete_person(request, id):
     else:
         return render(request, 'genealogy/delete_person_modal.html', {'person': this_person})
 
-# person/<int:id>/add/partner/<int:family_id>
+# person/<int:person_pk>/add/partner/<int:family_pk>
 @login_required
-def add_person_as_partner(request, id, family_id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def add_person_as_partner(request, person_pk, family_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_new_person':
@@ -612,9 +597,9 @@ def add_person_as_partner(request, id, family_id):
                 death_event.save()
 
             # No existing children to add to new partner
-            if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_id != 0:
+            if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_pk != 0:
                 try:
-                    family = Family.objects.get(id=family_id)
+                    family = Family.objects.get(pk=family_pk)
                     if this_person.sex == 'M':
                         family.husband = this_person
                         family.wife = partner
@@ -704,9 +689,9 @@ def add_person_as_partner(request, id, family_id):
                     response = JsonResponse({'errors': errors}, status=400)
                     return response
 
-                if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_id != 0:
+                if not existing_children_form or (existing_children_form and not existing_children_form.cleaned_data['existing_children']) or family_pk != 0:
                     try:
-                        family = Family.objects.get(id=family_id)
+                        family = Family.objects.get(id=family_pk)
                         if this_person.sex == 'M':
                             family.husband = this_person
                             family.wife = partner
@@ -769,7 +754,7 @@ def add_person_as_partner(request, id, family_id):
         birth_form = EventShortForm(prefix='birth')
         death_form = EventShortForm(prefix='death')
         existing_children = get_single_parent_children(this_person)
-        if existing_children and family_id == 0:
+        if existing_children and family_pk == 0:
             existing_children_form = ExistingChildrenForm()
             existing_children_form.fields['existing_children'].choices = existing_children
             existing_children_form.fields['existing_children'].initial = [child[0] for child in existing_children]
@@ -792,11 +777,11 @@ def add_person_as_partner(request, id, family_id):
         }
     )
 
-# tree/<int:id>/find-for-dropdown
+# tree/<int:pk>/find-for-dropdown
 @login_required
-def search_people_for_dropdown(request, id):
+def search_people_for_dropdown(request, pk):
     query = request.POST.get('person', '')
-    persons = get_dropdown_persons(query, id)
+    persons = get_dropdown_persons(query, pk)
 
     return render(request, 'genealogy/person_dropdown.html', {'persons': persons})
 
@@ -820,7 +805,7 @@ def get_families(person):
 
     return family_choices
 
-def get_dropdown_persons(query, id):
+def get_dropdown_persons(query, pk):
     if query:
         db_query_items = []
         query_items = query.split(" ")
@@ -841,7 +826,7 @@ def get_dropdown_persons(query, id):
             birth_query = ((Q(event__event_type='birth') & Q(event__year=q)) | (Q(event__event_type='death') & Q(event__year=q)))
         if years:
             db_query_items.append(birth_query)
-        tree = Tree.objects.get(id=id)
+        tree = Tree.objects.get(pk=pk)
         persons = Person.objects.filter(reduce(lambda x, y: x & y, db_query_items) & Q(tree=tree))
         # If two years included, also search for specific death year
         if len(years) == 2:
@@ -855,15 +840,12 @@ def get_dropdown_persons(query, id):
 
     return persons
 
-# person/<int:id>/add/child
+# person/<int:pk>/add/child
 @login_required
-def add_person_as_child(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def add_person_as_child(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     families = Family.objects.filter(Q(wife=this_person) | Q(husband=this_person))
     family_choices = [(family.id, family) for family in families]
@@ -990,15 +972,12 @@ def add_person_as_child(request, id):
         }
     )
 
-# person/<int:id>/add/parent/<str:parent>
+# person/<int:pk>/add/parent/<str:parent>
 @login_required
-def add_person_as_parent(request, id, parent):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def add_person_as_parent(request, pk, parent):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
 
     if parent not in ('father', 'mother'):
         raise Http404("Incorrect parent type.") 
@@ -1182,77 +1161,12 @@ def add_person_as_parent(request, id, parent):
         }
     )
 
-# tree/<int:id>/add-person
+# person/<int:pk>/event-list
 @login_required
-def add_person(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-        if this_tree.user != request.user:
-            raise Http404("Tree not found for this user.")
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
-
-    if request.method == 'POST':
-        person_form = PersonNamesForm(request.POST)
-        birth_form = EventShortForm(request.POST, prefix='birth')
-        death_form = EventShortForm(request.POST, prefix='death')
-
-        if not person_form.is_valid():
-            response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
-            return response
-        if not birth_form.is_valid():
-            response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
-            return response
-        if not death_form.is_valid():
-            response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
-            return response
-        
-        cd = person_form.cleaned_data
-        if cd['first_name'] or cd['last_name']:
-            new_person = Person()
-            new_person.tree = this_tree
-            new_person.first_name = cd['first_name']
-            new_person.last_name = cd['last_name']
-            new_person.sex = cd['sex']
-            new_person.save()
-
-            bf_data = birth_form.cleaned_data
-            if bf_data['date'] or bf_data['place']:
-                birth_event = Event(person=new_person, event_type='birth', date=bf_data['date'], place=bf_data['place'])
-                birth_event.save()
-
-            df_data = death_form.cleaned_data
-            if df_data['date'] or df_data['place']:
-                death_event = Event(person=new_person, event_type='death', date=df_data['date'], place=df_data['place'])
-                death_event.save()
-
-            messages.success(request, 'New person added successfully!')
-
-            return HttpResponse(status=204)
-    else:
-        person_form = PersonNamesForm()
-        birth_form = EventShortForm(prefix='birth')
-        death_form = EventShortForm(prefix='death')
-
-    return render(
-        request,
-        'genealogy/add_new_person_modal.html', 
-        {
-            'person_form' : person_form,
-            'birth_form': birth_form,
-            'death_form': death_form
-        }
-    )
-
-# person/<int:id>/event-list
-@login_required
-def event_list(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def event_list(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
 
     if request.method == 'POST':
         form = SelectEventForm(request.POST)
@@ -1297,15 +1211,12 @@ def event_list(request, id):
             {'form': form, 'person': this_person}
         )
 
-# person/<int:id>/event/add/<str:event_type>
+# person/<int:pk>/event/add/<str:event_type>
 @login_required
-def add_event(request, id, event_type):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def add_event(request, pk, event_type):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == 'POST':
         if request.POST.get('identifier') == 'add_event':
@@ -1370,11 +1281,11 @@ def add_event(request, id, event_type):
     else:
         print("EPIC FAIL")
 
-# event/<int:id>/edit
+# event/<int:pk>/edit
 @login_required
-def edit_event(request, id):
+def edit_event(request, pk):
     if request.method == 'POST':
-        event = Event.objects.get(id=id)
+        event = Event.objects.get(pk=pk)
         form = EditEventForm(request.POST, instance=event)
         if 'submit' in request.POST:
             if form.is_valid():
@@ -1389,7 +1300,7 @@ def edit_event(request, id):
         else:
             print("EPIC FAIL")
     else:
-        event = Event.objects.get(id=id)
+        event = Event.objects.get(pk=pk)
         form = EditEventForm(instance=event)
 
     return render(
@@ -1402,11 +1313,11 @@ def edit_event(request, id):
         }
     )
 
-# family-event/<int:id>/edit
+# family-event/<int:pk>/edit
 @login_required
-def edit_family_event(request, id):
+def edit_family_event(request, pk):
     if request.method == 'POST':
-        event = FamilyEvent.objects.get(id=id)
+        event = FamilyEvent.objects.get(pk=pk)
         form = EditFamilyEventForm(request.POST, instance=event)
         if 'submit' in request.POST:
             if form.is_valid():
@@ -1421,7 +1332,7 @@ def edit_family_event(request, id):
         else:
             print("EPIC FAIL")
     else:
-        event = FamilyEvent.objects.get(id=id)
+        event = FamilyEvent.objects.get(pk=pk)
         form = EditFamilyEventForm(instance=event)
         form.fields['family'].initial = event.family.id
 
@@ -1435,32 +1346,26 @@ def edit_family_event(request, id):
         }
     )
 
-# person/<int:id>/images
+# person/<int:pk>/images
 @login_required
-def view_images(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def view_images(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
-# person/<int:person_id>/images/<int:image_id>/view
+# person/<int:person_pk>/images/<int:image_pk>/view
 @login_required
-def view_image(request, person_id, image_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def view_image(request, person_pk, image_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
 
     try:
-        this_image = Image.objects.get(id=image_id)
+        this_image = Image.objects.get(pk=image_pk)
         if this_image.tree.user != request.user:
             raise Http404("Image not found for this user.")
     except Image.DoesNotExist:
@@ -1474,15 +1379,12 @@ def view_image(request, person_id, image_id):
 
     return render(request, 'genealogy/view_image_modal.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes, 'comments_form': comment_form, 'comments': comments})
 
-# person/<int:id>/images/add
+# person/<int:pk>/images/add
 @login_required
-def add_image(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def add_image(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     if request.method == 'POST':
         form = ImageAddForm(request.POST, request.FILES)
@@ -1508,22 +1410,16 @@ def add_image(request, id):
 
     return render(request, 'genealogy/add_images.html', {'person': this_person, 'form': form})
 
-# person/<int:person_id>/images/<int:image_id>/edit
+# person/<int:person_pk>/images/<int:image_pk>/edit
 @login_required
-def edit_image(request, person_id, image_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
-    
-    try:
-        this_image = Image.objects.get(id=image_id)
-        if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
-    except Person.DoesNotExist:
-        raise Http404("Image does not exist.") 
+def edit_image(request, person_pk, image_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
+
+    this_image = get_object_or_404(Image, pk=image_pk)
+    if this_image.tree.user != request.user:
+        raise Http404("Image not found for this user.")
 
     if request.method == 'POST':
         form = ImageEditForm(request.POST, instance=this_image)
@@ -1538,45 +1434,34 @@ def edit_image(request, person_id, image_id):
 
     return render(request, 'genealogy/edit_image.html', {'person': this_person, 'image': this_image, 'form': form})
 
-# person/<int:person_id>/images/<int:image_id>/delete
+# person/<int:person_pk>/images/<int:image_pk>/delete
 @login_required
-def delete_image(request, person_id, image_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
-    
-    try:
-        this_image = Image.objects.get(id=image_id)
-        if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
-    except Person.DoesNotExist:
-        raise Http404("Image does not exist.")   
+def delete_image(request, person_pk, image_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
+
+    this_image = get_object_or_404(Image, pk=image_pk)
+    if this_image.tree.user != request.user:
+        raise Http404("Image not found for this user.")
     
     this_image.delete()
     messages.success(request, "Image successfully deleted!")
 
     images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
 
-    return redirect('view_images', id=this_person.id)
+    return redirect('genealogy:view_images', pk=this_person.id)
 
+# person/<int:person_pk>/images/<int:image_pk>/like
 @login_required
-def like_image(request, person_id, image_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
-    
-    try:
-        this_image = Image.objects.get(id=image_id)
-        if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
-    except Person.DoesNotExist:
-        raise Http404("Image does not exist.")   
+def like_image(request, person_pk, image_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
+
+    this_image = get_object_or_404(Image, pk=image_pk)
+    if this_image.tree.user != request.user:
+        raise Http404("Image not found for this user.") 
     
     if Image_Like.objects.filter(image=this_image, user=request.user).exists():
         Image_Like.objects.filter(image=this_image, user=request.user).delete()
@@ -1592,21 +1477,16 @@ def like_image(request, person_id, image_id):
 
     return render(request, 'genealogy/image_like_section.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes})
 
+# person/<int:person_pk>/images/<int:image_pk>/comments/add
 @login_required
-def image_add_comment(request, person_id, image_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
-    
-    try:
-        this_image = Image.objects.get(id=image_id)
-        if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
-    except Person.DoesNotExist:
-        raise Http404("Image does not exist.")   
+def image_add_comment(request, person_pk, image_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
+
+    this_image = get_object_or_404(Image, pk=image_pk)
+    if this_image.tree.user != request.user:
+        raise Http404("Image not found for this user.")  
     
     if request.method == 'POST':
         form = ImageCommentAddForm(request.POST)
@@ -1624,41 +1504,31 @@ def image_add_comment(request, person_id, image_id):
             response = JsonResponse({'errors': dict(form.errors)}, status=400)
             return response
 
+# person/<int:person_pk>/images/<int:image_pk>/comments/<int:comment_pk>/delete
 @login_required
-def image_delete_comment(request, person_id, image_id, comment_id):
-    try:
-        this_person = Person.objects.get(id=person_id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def image_delete_comment(request, person_pk, image_pk, comment_pk):
+    this_person = get_object_or_404(Person, pk=person_pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
+
+    this_image = get_object_or_404(Image, pk=image_pk)
+    if this_image.tree.user != request.user:
+        raise Http404("Image not found for this user.")    
     
-    try:
-        this_image = Image.objects.get(id=image_id)
-        if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
-    except Person.DoesNotExist:
-        raise Http404("Image does not exist.")   
-    
-    try:
-        this_comment = Image_Comment.objects.get(id=comment_id)
-    except Image_Comment.DoesNotExist:
-        raise Http404("Comment does not exist.")
-    
+    this_comment = get_object_or_404(Image_Comment, pk=comment_pk)
+
     this_comment.delete()
 
     comments = Image_Comment.objects.filter(image=this_image).order_by('-commented_at')
 
     return render(request, 'genealogy/image_comments_section.html', {'person': this_person, 'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
 
+# person/<int:pk>/images/change-profile-photo
 @login_required
-def change_profile_photo(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def change_profile_photo(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
 
     images = Image.objects.filter(id__in=Image_Person.objects.filter(person=this_person).values('image'))
     profile_photo = this_person.profile_image
@@ -1673,9 +1543,68 @@ def change_profile_photo(request, id):
 
             messages.success(request, "Profile photo successfully updated!")
 
-        return redirect('person', id=this_person.id)
+        return redirect('genealogy:person', pk=this_person.id)
 
     return render(request, 'genealogy/select_profile_photo_modal.html', {'person': this_person, 'images': images, 'profile_photo': profile_photo})
+
+# tree/<int:pk>/add-person
+@login_required
+def add_person(request, pk):
+    this_tree = get_object_or_404(Tree, pk=pk)
+    if this_tree.user != request.user:
+        raise Http404("Tree not found for this user.")
+
+    if request.method == 'POST':
+        person_form = PersonNamesForm(request.POST)
+        birth_form = EventShortForm(request.POST, prefix='birth')
+        death_form = EventShortForm(request.POST, prefix='death')
+
+        if not person_form.is_valid():
+            response = JsonResponse({'errors': dict(person_form.errors)}, status=400)
+            return response
+        if not birth_form.is_valid():
+            response = JsonResponse({'errors': dict(birth_form.errors)}, status=400)
+            return response
+        if not death_form.is_valid():
+            response = JsonResponse({'errors': dict(death_form.errors)}, status=400)
+            return response
+        
+        cd = person_form.cleaned_data
+        if cd['first_name'] or cd['last_name']:
+            new_person = Person()
+            new_person.tree = this_tree
+            new_person.first_name = cd['first_name']
+            new_person.last_name = cd['last_name']
+            new_person.sex = cd['sex']
+            new_person.save()
+
+            bf_data = birth_form.cleaned_data
+            if bf_data['date'] or bf_data['place']:
+                birth_event = Event(person=new_person, event_type='birth', date=bf_data['date'], place=bf_data['place'])
+                birth_event.save()
+
+            df_data = death_form.cleaned_data
+            if df_data['date'] or df_data['place']:
+                death_event = Event(person=new_person, event_type='death', date=df_data['date'], place=df_data['place'])
+                death_event.save()
+
+            messages.success(request, 'New person added successfully!')
+
+            return HttpResponse(status=204)
+    else:
+        person_form = PersonNamesForm()
+        birth_form = EventShortForm(prefix='birth')
+        death_form = EventShortForm(prefix='death')
+
+    return render(
+        request,
+        'genealogy/add_new_person_modal.html', 
+        {
+            'person_form' : person_form,
+            'birth_form': birth_form,
+            'death_form': death_form
+        }
+    )
 
 def get_single_parent_children(person):
     families = Family.objects.filter((Q(husband=person) & Q(wife=None)) | (Q(wife=person) & Q(husband=None)))

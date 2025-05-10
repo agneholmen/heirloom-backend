@@ -7,7 +7,7 @@
 </div>
 <div class="modal-body">
     <div id="error-messages"></div>
-    <form method="POST" hx-post="{% url 'event_list' person.id %}" hx-trigger="change" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleNewEventRequest(event)">
+    <form method="POST" hx-post="{% url 'genealogy:event_list' person.id %}" hx-trigger="change" hx-target="#modal-content" hx-swap="innerHTML" hx-on::after-request="handleNewEventRequest(event)">
         {% csrf_token %}
         {% crispy form %}
     </form>

@@ -1,7 +1,42 @@
 {% extends "base.html" %}
+{% load static %}
+{% load custom_tags %}
 
 {% block title %}Community{% endblock title %}
+{% block css_include %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/community.css' %}">
+{% endblock css_include %}
 
 {% block content %}
-<p>This is the community view.</p>
+<div class="community-container">
+    {% if users %}
+        <div class="user-boxes-container">
+            <h3>Users</h3>
+            {% for user in users %}
+            <div class="user-box">
+                <a href="{% url 'genealogy:community_user' user.id %}">{{ user.username }}</a>
+                <button type="button" class="btn btn-primary" hx-post="{% url 'genealogy:follow_user' user.id %}"
+                    hx-swap="none" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
+                    hx-trigger="click" hx-on::after-request="handleFollowEvent(event)">{% follow_status request.user user %}</button>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="right-column">
+            <h3>Followers</h3>
+            <div class="followers-box-container">
+                <p>You have {{ followers.count }} follower{{ followers|pluralize }}.</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<script>
+    function handleFollowEvent(event) {
+        jsonData = JSON.parse(event.detail.xhr.response);
+        if (jsonData.status == 'followed') {
+            event.target.innerHTML = "Unfollow";
+        } else if (jsonData.status == 'unfollowed') {
+            event.target.innerHTML = "Follow";
+        }
+    }
+</script>
 {% endblock content %}

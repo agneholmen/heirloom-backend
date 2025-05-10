@@ -1,123 +1,20 @@
 from django import forms
-from django.forms import Select
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
-from .models import Event, FamilyEvent, Image, Image_Comment, Person, Profile, Tree
+from .models import Event, FamilyEvent, Image, Image_Comment, Person, Tree
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Button, Layout, Submit, Div, Field, Row, Column
+from crispy_forms.layout import Button, Layout, Submit, Row, Column
 
 from image_uploader_widget.widgets import ImageUploaderWidget
-
-class LoginForm(forms.Form):
-    username = forms.CharField()
-    password = forms.CharField(widget=forms.PasswordInput)
-
-
-class UserRegistrationForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column('username', css_class="col-md-4"),
-                Column('first_name', css_class="col-md-4"),
-                Column('last_name', css_class="col-md-4")
-            ),
-            Row('email', css_class="form-outline mb-1"),
-            Row('password', css_class="form-outline mb-1"),
-            Row('password2', css_class="form-outline mb-1")
-        )
-
-    password = forms.CharField(
-        label='Password',
-        widget=forms.PasswordInput
-    )
-    password2 = forms.CharField(
-        label='Repeat password',
-        widget=forms.PasswordInput
-    )
-
-    class Meta:
-        model = get_user_model()
-        fields = ['username', 'first_name', 'last_name', 'email']
-        widgets = {
-            'email': forms.EmailInput(attrs={"placeholder": "Email"}),
-        }
-
-    def clean_password2(self):
-        cd = self.cleaned_data
-        if cd['password'] != cd['password2']:
-            raise forms.ValidationError("Passwords don't match.")
-        return cd['password2']
-    
-    def clean_email(self):
-        data = self.cleaned_data['email']
-        if User.objects.filter(email=data).exists():
-            raise forms.ValidationError('Email already in use.')
-        return data
-    
-class UserEditForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row(
-                Column('first_name', css_class="col-md-4"),
-                Column('last_name', css_class="col-md-4")
-            ),
-            Row('email', css_class="form-outline mb-1")
-        )
-
-    class Meta:
-        model = get_user_model()
-        fields = ['first_name', 'last_name', 'email']
-        widgets = {
-            'email': forms.EmailInput(attrs={"placeholder": "Email"}),
-        }
-
-    def clean_email(self):
-        data = self.cleaned_data['email']
-        qs = User.objects.exclude(
-            id=self.instance.id
-        ).filter(
-            email=data
-        )
-        if qs.exists():
-            raise forms.ValidationError('Email already in use.')
-        return data
-
-class ProfileEditForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper(self)
-        self.helper.form_method = 'POST'
-        self.helper.form_tag = False
-        self.helper.layout = Layout(
-            Row('date_of_birth', css_class="form-outline mb-1"),
-            Row('description', css_class="form-outline mb-1"),
-            Row('sex', css_class="form-outline mb-1"),
-        )
-
-    class Meta:
-        model = Profile
-        fields = ['date_of_birth', 'photo', 'description', 'sex']
-        widgets = {
-            'photo': ImageUploaderWidget(),
-            'date_of_birth': forms.DateInput(attrs={"type": "date"}),
-        }
 
 class NewTreeForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_method = 'POST'
-        self.helper.form_action = reverse_lazy('family_tree')
+        self.helper.form_action = reverse_lazy('genealogy:family_tree')
         self.helper.add_input(Submit('upload-submit', 'Create Tree', css_id='upload-button'))
         self.helper.layout = Layout(
             Row(
@@ -177,7 +74,7 @@ class SearchForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper(self)
         self.helper.form_method = 'GET'
-        self.helper.form_action = reverse_lazy('search')
+        self.helper.form_action = reverse_lazy('genealogy:search')
         self.helper.add_input(Submit('search-submit', 'Search', css_id='search-button'))
         self.helper.layout = Layout(
             Row(

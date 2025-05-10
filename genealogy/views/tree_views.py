@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Count, OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 
 from .common import *
@@ -107,17 +107,14 @@ def family_tree(request):
         }
     )
 
-# tree/<int:id>/view/<int:person_id>
+# tree/<int:tree_pk>/view/<int:person_pk>
 @login_required
-def view_tree(request, id, person_id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-        if this_tree.user != request.user:
-            raise Http404("Tree not found for this user.")
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
+def view_tree(request, tree_pk, person_pk):
+    this_tree = get_object_or_404(Tree, pk=tree_pk)
+    if this_tree.user != request.user:
+        raise Http404("Tree not found for this user.")
     
-    this_tree.number_of_persons = Tree.objects.filter(id=id).annotate(number_of_persons=Count("persons")).values_list("number_of_persons", flat=True).first()
+    this_tree.number_of_persons = Tree.objects.filter(id=tree_pk).annotate(number_of_persons=Count("persons")).values_list("number_of_persons", flat=True).first()
     if this_tree.number_of_persons == 0:
         return render(
             request, 
@@ -128,22 +125,19 @@ def view_tree(request, id, person_id):
             }
         )
     
-    if person_id == 0:
+    if person_pk == 0:
         most_recent_person = Person.objects.filter(tree=this_tree).order_by('id').first()
-        return redirect('view_tree', id=id, person_id=most_recent_person.id)
+        return redirect('genealogy:view_tree', tree_pk=tree_pk, person_pk=most_recent_person.id)
 
-    try:
-        first_person = Person.objects.get(id=person_id)
-        if first_person.tree != this_tree:
-            raise Http404("Person not found in this tree.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+    first_person = get_object_or_404(Person, pk=person_pk)
+    if first_person.tree != this_tree:
+        raise Http404("Person not found in this tree.")
 
     generations = 3
 
     people_data = get_person_tree_data(first_person)
 
-    people_data['parents'] = tree_get_parents(first_person, 1, generations, id)
+    people_data['parents'] = tree_get_parents(first_person, 1, generations, tree_pk)
 
     family = Family.objects.filter(Q(husband=first_person) | Q(wife=first_person))
     if family:
@@ -177,37 +171,31 @@ def get_person_tree_data(person):
         'id': person.id,
         'image': get_default_image(person.sex) if not person.profile_image else get_profile_photo(person),
         'years': person.get_years(),
-        'person_url': reverse('person', kwargs={'id': person.id}),
-        'tree_url': reverse('view_tree', kwargs={'id': person.tree.id, 'person_id': person.id}),
-        'edit_url': reverse('edit_person', kwargs={'id': person.id})
+        'person_url': reverse('genealogy:person', kwargs={'pk': person.id}),
+        'tree_url': reverse('genealogy:view_tree', kwargs={'tree_pk': person.tree.id, 'person_pk': person.id}),
+        'edit_url': reverse('genealogy:edit_person', kwargs={'pk': person.id})
     }
 
-# tree/<int:id>/delete
+# tree/<int:pk>/delete
 @login_required
-def delete_tree(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-        if this_tree.user != request.user:
-            raise Http404("Tree not found for this user.")
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
+def delete_tree(request, pk):
+    this_tree = get_object_or_404(Tree, pk=pk)
+    if this_tree.user != request.user:
+        raise Http404("Tree not found for this user.")
     
     if request.method == "POST":
         this_tree.delete()
         messages.success(request, 'Tree deleted successfully!')
-        return redirect('family_tree')
+        return redirect('genealogy:family_tree')
     else:
         return render(request, 'genealogy/delete_tree_modal.html', {'tree': this_tree})
 
-# tree/<int:id>/edit
+# tree/<int:pk>/edit
 @login_required
-def edit_tree(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-        if this_tree.user != request.user:
-            raise Http404("Tree not found for this user.")
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
+def edit_tree(request, pk):
+    this_tree = get_object_or_404(Tree, pk=pk)
+    if this_tree.user != request.user:
+        raise Http404("Tree not found for this user.")
 
     if request.method == 'POST':
         form = EditTreeForm(request.POST, instance=this_tree)
@@ -227,15 +215,12 @@ def edit_tree(request, id):
         {'tree': this_tree, 'form': form}
     )
 
-# tree/<int:id>/download
+# tree/<int:pk>/download
 @login_required
-def download_tree(request, id):
-    try:
-        this_tree = Tree.objects.get(id=id)
-        if this_tree.user != request.user:
-            raise Http404("Tree not found for this user.")
-    except Tree.DoesNotExist:
-        raise Http404("Tree does not exist.")
+def download_tree(request, pk):
+    this_tree = get_object_or_404(Tree, pk=pk)
+    if this_tree.user != request.user:
+        raise Http404("Tree not found for this user.")
 
     content = f'''0 HEAD
 1 SUBM @SUBM1@
@@ -336,7 +321,7 @@ def get_tree_list(request):
     return render(request, 'genealogy/tree_list.html', {'trees': trees})
 
 
-def tree_get_parents(current_person, generation, max_generation, tree_id):
+def tree_get_parents(current_person, generation, max_generation, tree_pk):
     if generation == max_generation:
         return []
 
@@ -350,17 +335,17 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'id': father.id,
             'image': get_default_image(father.sex) if not father.profile_image else get_profile_photo(father),
             'years': father.get_years(),
-            'person_url': reverse('person', kwargs={'id': father.id}),
-            'tree_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': father.id}),
-            'edit_url': reverse('edit_person', kwargs={'id': father.id}),
+            'person_url': reverse('genealogy:person', kwargs={'pk': father.id}),
+            'tree_url': reverse('genealogy:view_tree', kwargs={'tree_pk': tree_pk, 'person_pk': father.id}),
+            'edit_url': reverse('genealogy:edit_person', kwargs={'pk': father.id}),
             'parent_type': 'father',
-            'parents': tree_get_parents(father, generation + 1, max_generation, tree_id)
+            'parents': tree_get_parents(father, generation + 1, max_generation, tree_pk)
         })
     else:
         parents.append({
             'id': 0,
             'child_id': current_person.id,
-            'person_url': reverse('add_person_as_parent', kwargs={'id': current_person.id, 'parent': 'father'}),
+            'person_url': reverse('genealogy:add_person_as_parent', kwargs={'pk': current_person.id, 'parent': 'father'}),
             'parent_type': 'father',
             'parents': []
         })
@@ -371,17 +356,17 @@ def tree_get_parents(current_person, generation, max_generation, tree_id):
             'id': mother.id,
             'image': get_default_image(mother.sex) if not mother.profile_image else get_profile_photo(mother),
             'years': mother.get_years(),
-            'person_url': reverse('person', kwargs={'id': mother.id}),
-            'tree_url': reverse('view_tree', kwargs={'id': tree_id, 'person_id': mother.id}),
-            'edit_url': reverse('edit_person', kwargs={'id': mother.id}),
+            'person_url': reverse('genealogy:person', kwargs={'pk': mother.id}),
+            'tree_url': reverse('genealogy:view_tree', kwargs={'tree_pk': tree_pk, 'person_pk': mother.id}),
+            'edit_url': reverse('genealogy:edit_person', kwargs={'pk': mother.id}),
             'parent_type': 'mother',
-            'parents': tree_get_parents(mother, generation + 1, max_generation, tree_id)
+            'parents': tree_get_parents(mother, generation + 1, max_generation, tree_pk)
         })
     else:
         parents.append({
             'id': 0,
             'child_id': current_person.id,
-            'person_url': reverse('add_person_as_parent', kwargs={'id': current_person.id, 'parent': 'mother'}),
+            'person_url': reverse('genealogy:add_person_as_parent', kwargs={'pk': current_person.id, 'parent': 'mother'}),
             'parent_type': 'mother',
             'parents': []
         })
@@ -525,15 +510,12 @@ def search(request):
         }
     )
 
-# search/update-result-row/<int:id>
+# search/update-result-row/<int:pk>
 @login_required
-def update_search_result_row(request, id):
-    try:
-        this_person = Person.objects.get(id=id)
-        if this_person.tree.user != request.user:
-            raise Http404("Person not found in any of your trees.")
-    except Person.DoesNotExist:
-        raise Http404("Person does not exist.")
+def update_search_result_row(request, pk):
+    this_person = get_object_or_404(Person, pk=pk)
+    if this_person.tree.user != request.user:
+        raise Http404("Person not found in any of your trees.")
     
     return render(
         request,

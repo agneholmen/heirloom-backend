@@ -11,44 +11,44 @@
 
 {% block content %}
     <div class="person-options">
-        <a href="{% url 'view_tree' person.tree.id person.id %}"><button class="btn btn-primary" type="button">View Family Tree</button></a>
+        <a href="{% url 'genealogy:view_tree' person.tree.id person.id %}"><button class="btn btn-primary" type="button">View Family Tree</button></a>
         <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Edit</button>
         <ul class="dropdown-menu">
             <li>
-                <a href="#" class="dropdown-item" hx-get="{% url 'edit_person' person.id %}" hx-target="#modal-content" 
+                <a href="#" class="dropdown-item" hx-get="{% url 'genealogy:edit_person' person.id %}" hx-target="#modal-content" 
                     type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal" 
                     hx-swap="innerHTML">Quick Edit</a>
             </li>
-            <li><a href="#" class="dropdown-item" hx-get="{% url 'edit_relationships' person.id %}" hx-target="#modal-content"
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'genealogy:edit_relationships' person.id %}" hx-target="#modal-content"
                     type="button" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal"
                     hx-swap="innerHTML">Edit Relationships</a>
             </li>
         </ul>
-        <a href="{% url 'view_images' person.id %}"><button class="btn btn-primary" type="button">Images</button></a>
+        <a href="{% url 'genealogy:view_images' person.id %}"><button class="btn btn-primary" type="button">Images</button></a>
         <button class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#modal" 
-            hx-get="{% url 'event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
-        <button class="btn btn-danger" type="button" hx-get="{% url 'delete_person' person.id %}"
+            hx-get="{% url 'genealogy:event_list' person.id %}" hx-trigger="click" hx-swap="innerHTML" hx-target="#modal-content">Add Life Event</button>
+        <button class="btn btn-danger" type="button" hx-get="{% url 'genealogy:delete_person' person.id %}"
             hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
             data-bs-toggle="modal" data-bs-target="#modal">Delete Person</button>
         <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add Person</button>
         <ul class="dropdown-menu">
-            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_child' person.id %}"
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'genealogy:add_person_as_child' person.id %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                 data-bs-target="#modal">Child</a></li>
-            <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_partner' person.id 0 %}" 
+            <li><a href="#" class="dropdown-item" hx-get="{% url 'genealogy:add_person_as_partner' person.id 0 %}" 
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                 data-bs-target="#modal">Partner</a></li>
             {% if father %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Father</a></li>
             {% else %}
-                <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+                <li><a href="#" class="dropdown-item" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'father' %}" 
                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                     data-bs-target="#modal">Father</a></li>
             {% endif %}
             {% if mother %}
                 <li><a href="#" class="dropdown-item disabled" aria-disabled="true">Mother</a></li>
             {% else %}
-                <li><a href="#" class="dropdown-item" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+                <li><a href="#" class="dropdown-item" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'mother' %}" 
                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                     data-bs-target="#modal">Mother</a></li>
             {% endif %}
@@ -57,7 +57,7 @@
     <div class="person-container">
         <div class="profile-header">
             {% if has_images %}
-            <div class="profile-picture change-profile-picture" hx-get="{% url 'change_profile_photo' person.id %}"
+            <div class="profile-picture change-profile-picture" hx-get="{% url 'genealogy:change_profile_photo' person.id %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modal">
             {% else %}
             <div class="profile-picture">
@@ -94,18 +94,18 @@
                                 {% if event.model_type == 'basic' %}
                                     <strong>{{ event.event_type_full }}</strong>
                                 {% else %}
-                                    <strong>{{ event.event_type_full }} - <a href="{% url 'person' event.family_member.id %}">{{ event.family_member }}</a></strong>
+                                    <strong>{{ event.event_type_full }} - <a href="{% url 'genealogy:person' event.family_member.id %}">{{ event.family_member }}</a></strong>
                                 {% endif %}
                                 <p>{{ event.date|default_if_none:"" }}</p>
                                 <p>{{ event.place|default_if_none:"" }}</p>
                                 <p>{{ event.description|default_if_none:"" }}</p>
                             </div>
                             {% if event.model_type == 'basic' %}
-                                <button class=" btn btn-primary edit-event" hx-get="{% url 'edit_event' event.id %}" 
+                                <button class=" btn btn-primary edit-event" hx-get="{% url 'genealogy:edit_event' event.id %}" 
                                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" 
                                     data-bs-target="#modal">Edit</button>
                             {% elif event.model_type == 'family' %}
-                                <button class=" btn btn-primary edit-event" hx-get="{% url 'edit_family_event' event.id %}" 
+                                <button class=" btn btn-primary edit-event" hx-get="{% url 'genealogy:edit_family_event' event.id %}" 
                                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal" 
                                     data-bs-target="#modal">Edit</button>
                             {% endif %}
@@ -120,9 +120,9 @@
                     <h3>Parents</h3>
                     <strong>Father</strong>
                     {% if father %}
-                        <a href="{% url 'person' father.id %}" class="person-card">{{ father.get_name_years }}</a>
+                        <a href="{% url 'genealogy:person' father.id %}" class="person-card">{{ father.get_name_years }}</a>
                     {% else %}
-                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+                        <a href="#" class="new-person-card" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'father' %}" 
                         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                         data-bs-target="#modal">
                             <span>Add father</span>
@@ -131,9 +131,9 @@
                     {% endif %}
                     <strong>Mother</strong>
                     {% if mother %}
-                        <a href="{% url 'person' mother.id %}" class="person-card">{{ mother.get_name_years }}</a>
+                        <a href="{% url 'genealogy:person' mother.id %}" class="person-card">{{ mother.get_name_years }}</a>
                     {% else %}
-                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+                        <a href="#" class="new-person-card" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'mother' %}" 
                         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                         data-bs-target="#modal">
                             <span>Add mother</span>
@@ -145,7 +145,7 @@
                     <div class="category">
                         <h3>Siblings</h3>
                         {% for sibling in siblings  %}
-                            <a href="{% url 'person' sibling.person.id %}" class="person-card">{{ sibling.person.get_name_years }}</a>
+                            <a href="{% url 'genealogy:person' sibling.person.id %}" class="person-card">{{ sibling.person.get_name_years }}</a>
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -153,7 +153,7 @@
                     <div class="category">
                         <h3>Half-siblings</h3>
                         {% for half_sibling in half_siblings %}
-                            <a href="{% url 'person' half_sibling.person.id %}" class="person-card">{{ half_sibling.person.get_name_years }}</a>
+                            <a href="{% url 'genealogy:person' half_sibling.person.id %}" class="person-card">{{ half_sibling.person.get_name_years }}</a>
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -164,9 +164,9 @@
                             <div class="family-group">
                                 <strong>Partner</strong>
                                 {% if family.partner %}
-                                    <a href="{% url 'person' family.partner.id %}" class="person-card">{{ family.partner.get_name_years }}</a>
+                                    <a href="{% url 'genealogy:person' family.partner.id %}" class="person-card">{{ family.partner.get_name_years }}</a>
                                 {% else %}
-                                    <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_partner' person.id family.id %}" 
+                                    <a href="#" class="new-person-card" hx-get="{% url 'genealogy:add_person_as_partner' person.id family.id %}" 
                                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                                     data-bs-target="#modal">
                                         <span>Add partner</span>
@@ -176,10 +176,10 @@
                                 <strong>Children</strong>
                                 {% if family.children %}
                                     {% for child in family.children %}
-                                        <a href="{% url 'person' child.person.id %}" class="person-card">{{ child.person.get_name_years }}</a>
+                                        <a href="{% url 'genealogy:person' child.person.id %}" class="person-card">{{ child.person.get_name_years }}</a>
                                     {% endfor %}
                                 {% else %}
-                                    <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_child' person.id %}" 
+                                    <a href="#" class="new-person-card" hx-get="{% url 'genealogy:add_person_as_child' person.id %}" 
                                     hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                                     data-bs-target="#modal">
                                         <span>Add child</span>
@@ -189,7 +189,7 @@
                             </div>
                         {% endfor %}
                     {% else %}
-                        <a href="#" class="new-person-card" hx-get="{% url 'add_person_as_partner' person.id 0 %}" 
+                        <a href="#" class="new-person-card" hx-get="{% url 'genealogy:add_person_as_partner' person.id 0 %}" 
                         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                         data-bs-target="#modal">
                             <span>Add partner</span>

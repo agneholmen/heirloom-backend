@@ -19,7 +19,7 @@
     {% else %}
     <div class="d-flex justify-content-between">
         <span>No father</span>
-        <a href="#" hx-get="{% url 'add_person_as_parent' person.id 'father' %}" 
+        <a href="#" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'father' %}" 
             hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
             {% bs_icon 'person-add' size="2em" color="green" %}</a>
     </div>
@@ -36,7 +36,7 @@
     {% else %}
         <div class="d-flex justify-content-between">
             <span>No mother</span>
-            <a href="#" hx-get="{% url 'add_person_as_parent' person.id 'mother' %}" 
+            <a href="#" hx-get="{% url 'genealogy:add_person_as_parent' person.id 'mother' %}" 
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
                 {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
         </div>
@@ -56,7 +56,7 @@
     {% else %}
         <div class="d-flex justify-content-between border rounded p-2 m-2">
             <span>No partners</span>
-            <a href="#" hx-get="{% url 'add_person_as_partner' person.id 0 %}"
+            <a href="#" hx-get="{% url 'genealogy:add_person_as_partner' person.id 0 %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
                 {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
         </div>
@@ -75,7 +75,7 @@
     {% else %}
         <div class="d-flex justify-content-between border rounded p-2 m-2">
             <span>No children</span>
-            <a href="#" hx-get="{% url 'add_person_as_child' person.id %}"
+            <a href="#" hx-get="{% url 'genealogy:add_person_as_child' person.id %}"
                 hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-target="#modal">
                 {% bs_icon 'person-add' size="2em" color="#198754" %}</a>
         </div>

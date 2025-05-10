@@ -1,14 +1,13 @@
-from django.contrib import messages
-from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
-from django.shortcuts import render
-from ..forms import (
-    LoginForm,
-    ProfileEditForm,
-    UserEditForm,
-    UserRegistrationForm
-)
+from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, login
+from django.db.models import Count
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+
+from ..models import Image, Tree
+
+User = get_user_model()
 
 @login_required
 def home(request):
@@ -20,95 +19,49 @@ def home(request):
         }
     )
 
-def user_login(request):
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            user = authenticate(
-                request,
-                username=cd['username'],
-                password=cd['password']
-            )
-            if user is not None:
-                if user.is_active:
-                    login(request, user)
-                    return HttpResponse('Authenticated successfully')
-                else:
-                    return HttpResponse('Disabled account')
-            else:
-                return HttpResponse('Invalid login')
-    else:
-        form = LoginForm()
-    return render(request, 'genealogy/login.html', {'form': form})
-
-def register(request):
-    if request.method == 'POST':
-        user_form = UserRegistrationForm(request.POST)
-        if user_form.is_valid():
-            # Create a new user object but avoid saving it yet
-            new_user = user_form.save(commit=False)
-            # Set the chosen password
-            new_user.set_password(
-                user_form.cleaned_data['password']
-            )
-            # Save the User object
-            new_user.save()
-            return render(
-                request,
-                'genealogy/register_done.html',
-                {'new_user': new_user}
-            )
-    else:
-        user_form = UserRegistrationForm()
-    return render(
-        request,
-        'genealogy/register.html',
-        {'user_form': user_form}
-    )
-
-@login_required
-def edit_profile(request):
-    if request.method == 'POST':
-        user_form = UserEditForm(
-            instance=request.user,
-            data=request.POST
-        )
-        profile_form = ProfileEditForm(
-            instance=request.user.profile,
-            data=request.POST,
-            files=request.FILES
-        )
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            messages.success(
-                request,
-                'Profile updated successfully!'
-            )
-        else:
-            messages.error(request, 'Error updating your profile!')
-
-    else:
-        user_form = UserEditForm(instance=request.user)
-        profile_form = ProfileEditForm(instance=request.user.profile)
-
-    return render(
-        request,
-        'genealogy/edit_profile.html',
-        {
-            'user_form': user_form,
-            'profile_form': profile_form,
-            'section': 'edit_profile'
-        }
-    )
-
 @login_required
 def community(request):
+    users = User.objects.all().exclude(id=request.user.id)
+    followers = request.user.followers.all()
+
     return render(
         request,
         'genealogy/community.html',
         {
-            'section': 'community'
+            'section': 'community',
+            'users': users,
+            'followers': followers
         }
     )
+
+@login_required
+def community_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    followers = user.followers.all()
+    trees = Tree.objects.filter(user=user, private=False)
+    trees = trees.annotate(number_of_persons=Count("persons"))
+    images = Image.objects.filter(user=user, private=False)
+
+    return render(
+        request,
+        'genealogy/community_user.html',
+        {
+            'section': 'community',
+            'user': user,
+            'followers': followers,
+            'trees': trees,
+            'images': images
+        }
+    )
+
+@login_required
+def follow_user(request, pk):
+    user = get_object_or_404(User, pk=pk)
+    if request.user in user.followers.all():
+        request.user.unfollow(user)
+        response_data = {'status': 'unfollowed', 'number_of_followers': user.followers.count()}
+    else:
+        request.user.follow(user)
+        response_data = {'status': 'followed', 'number_of_followers': user.followers.count()}
+
+    return JsonResponse(status=200, data=response_data)

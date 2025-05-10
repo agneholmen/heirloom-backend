@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
@@ -14,33 +15,6 @@ def users_file_location(instance, filename):
     date_string = date.today().strftime("%Y/%m/%d")
     return f"users/{instance.user.username}/{date_string}/{filename}"
 
-
-class Profile(models.Model):
-    SEX_CHOICES = (
-        ("M", "Male"),
-        ("F", "Female"),
-        ("U", "Unknown"),
-    )
-
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
-    )
-    date_of_birth = models.DateField(blank=True, null=True)
-    photo = models.ImageField(
-        upload_to=users_file_location,
-        blank=True
-    )
-    description = models.TextField(blank=True)
-    sex = models.CharField(
-        max_length=1,
-        choices=SEX_CHOICES,
-        default="U"
-    )
-
-    def __str__(self) -> str:
-        return f'Profile of {self.user.username}'
-    
 
 class Tree(models.Model):
     user = models.ForeignKey(
@@ -447,14 +421,6 @@ def handle_family_cleanup(sender, instance, **kwargs):
     for child in children:
         if (child.family.husband and not child.family.wife) or (child.family.wife and not child.family.husband) and child.family.children.count() == 1:
             child.family.delete()
-
-# Removes the photo file when you remove a Profile instance
-@receiver(post_delete, sender=Profile)
-def profile_post_delete_handler(sender, **kwargs):
-    profile = kwargs['instance']
-    if hasattr(profile, 'photo'):
-        storage, path = profile.photo.storage, profile.photo.path
-        storage.delete(path)
 
 # Removes the GEDCOM file when you remove a Tree instance
 @receiver(post_delete, sender=Tree)

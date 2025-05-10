@@ -1,13 +1,13 @@
 {% load bootstrap_icons %}
-                <tr hx-get="{% url 'update_result_row' person.id %}" id="person-{{ person.id }}" hx-trigger="update-person-{{ person.id }} from:body" hx-swap="outerHTML" target="this">
-                    <td><a href="{% url 'person' person.id %}">{{ person }}</a></td>
+                <tr hx-get="{% url 'genealogy:update_result_row' person.id %}" id="person-{{ person.id }}" hx-trigger="update-person-{{ person.id }} from:body" hx-swap="outerHTML" target="this">
+                    <td><a href="{% url 'genealogy:person' person.id %}">{{ person }}</a></td>
                     <td>{{ person.get_birth_date|default_if_none:"" }}</td>
                     <td>{{ person.get_death_date|default_if_none:"" }}</td>
                     <td>
-                        <a href="#" hx-get="{% url 'edit_person' person.id %}"
+                        <a href="#" hx-get="{% url 'genealogy:edit_person' person.id %}"
                             hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
                             data-bs-toggle="modal" data-bs-target="#modal">{% bs_icon 'pencil-square' size="2em" color="#0d6efd" %}</a>
-                        <a href="#" hx-get="{% url 'delete_person' person.id %}"
+                        <a href="#" hx-get="{% url 'genealogy:delete_person' person.id %}"
                             hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML"
                             data-bs-toggle="modal" data-bs-target="#modal">{% bs_icon 'trash' size="2em" color="#dc3545" %}</a>
                     </td>
