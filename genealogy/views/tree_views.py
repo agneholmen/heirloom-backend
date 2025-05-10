@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, Paginator
+from django.db import transaction
 from django.db.models import Count, OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -66,6 +67,7 @@ SURNAMES_REPLACE = [
 
 # tree/
 @login_required
+@transaction.atomic
 def family_tree(request):
     if request.method == "POST":
         form = NewTreeForm(request.POST, request.FILES)
@@ -178,6 +180,7 @@ def get_person_tree_data(person):
 
 # tree/<int:pk>/delete
 @login_required
+@transaction.atomic
 def delete_tree(request, pk):
     this_tree = get_object_or_404(Tree, pk=pk)
     if this_tree.user != request.user:
@@ -192,6 +195,7 @@ def delete_tree(request, pk):
 
 # tree/<int:pk>/edit
 @login_required
+@transaction.atomic
 def edit_tree(request, pk):
     this_tree = get_object_or_404(Tree, pk=pk)
     if this_tree.user != request.user:

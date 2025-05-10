@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from itertools import chain
 
@@ -322,6 +324,7 @@ def person(request, pk):
 
 # person/<int:pk>/edit/person
 @login_required
+@transaction.atomic
 def edit_person(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -373,6 +376,7 @@ def edit_person(request, pk):
 
 # person/<int:pk>/edit/relationships
 @login_required
+@transaction.atomic
 def edit_relationships(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -509,6 +513,7 @@ def edit_relationships(request, pk):
 
 # person/<int:pk>/delete
 @login_required
+@transaction.atomic
 def delete_person(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -548,6 +553,7 @@ def delete_person(request, pk):
 
 # person/<int:person_pk>/add/partner/<int:family_pk>
 @login_required
+@transaction.atomic
 def add_person_as_partner(request, person_pk, family_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -779,6 +785,7 @@ def add_person_as_partner(request, person_pk, family_pk):
 
 # tree/<int:pk>/find-for-dropdown
 @login_required
+@require_POST
 def search_people_for_dropdown(request, pk):
     query = request.POST.get('person', '')
     persons = get_dropdown_persons(query, pk)
@@ -787,6 +794,7 @@ def search_people_for_dropdown(request, pk):
 
 # person/find-families-for-dropdown
 @login_required
+@require_POST
 def families_for_dropdown(request):
     person = request.POST.get('selected_person', '')
     families = get_families(person)
@@ -842,6 +850,7 @@ def get_dropdown_persons(query, pk):
 
 # person/<int:pk>/add/child
 @login_required
+@transaction.atomic
 def add_person_as_child(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -974,6 +983,7 @@ def add_person_as_child(request, pk):
 
 # person/<int:pk>/add/parent/<str:parent>
 @login_required
+@transaction.atomic
 def add_person_as_parent(request, pk, parent):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -1381,6 +1391,7 @@ def view_image(request, person_pk, image_pk):
 
 # person/<int:pk>/images/add
 @login_required
+@transaction.atomic
 def add_image(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -1412,6 +1423,7 @@ def add_image(request, pk):
 
 # person/<int:person_pk>/images/<int:image_pk>/edit
 @login_required
+@transaction.atomic
 def edit_image(request, person_pk, image_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -1436,6 +1448,7 @@ def edit_image(request, person_pk, image_pk):
 
 # person/<int:person_pk>/images/<int:image_pk>/delete
 @login_required
+@transaction.atomic
 def delete_image(request, person_pk, image_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -1454,6 +1467,7 @@ def delete_image(request, person_pk, image_pk):
 
 # person/<int:person_pk>/images/<int:image_pk>/like
 @login_required
+@transaction.atomic
 def like_image(request, person_pk, image_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -1479,6 +1493,7 @@ def like_image(request, person_pk, image_pk):
 
 # person/<int:person_pk>/images/<int:image_pk>/comments/add
 @login_required
+@transaction.atomic
 def image_add_comment(request, person_pk, image_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -1506,6 +1521,7 @@ def image_add_comment(request, person_pk, image_pk):
 
 # person/<int:person_pk>/images/<int:image_pk>/comments/<int:comment_pk>/delete
 @login_required
+@transaction.atomic
 def image_delete_comment(request, person_pk, image_pk, comment_pk):
     this_person = get_object_or_404(Person, pk=person_pk)
     if this_person.tree.user != request.user:
@@ -1525,6 +1541,7 @@ def image_delete_comment(request, person_pk, image_pk, comment_pk):
 
 # person/<int:pk>/images/change-profile-photo
 @login_required
+@transaction.atomic
 def change_profile_photo(request, pk):
     this_person = get_object_or_404(Person, pk=pk)
     if this_person.tree.user != request.user:
@@ -1549,6 +1566,7 @@ def change_profile_photo(request, pk):
 
 # tree/<int:pk>/add-person
 @login_required
+@transaction.atomic
 def add_person(request, pk):
     this_tree = get_object_or_404(Tree, pk=pk)
     if this_tree.user != request.user:
