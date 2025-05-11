@@ -20,7 +20,7 @@
             <div class="image-container">
                 <div>
                     <h6>{{ image.title }}</h6>
-                    <a href="#" hx-get="{% url 'genealogy:view_image' person.id image.id %}" 
+                    <a href="#" hx-get="{% url 'genealogy:view_image' image.id %}"
                         hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
                         data-bs-target="#modal">
                         <img src="{% thumbnail image.image 150x0 crop='smart' %}">

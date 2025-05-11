@@ -3,9 +3,10 @@
 {% load custom_tags %}
 {% load thumbnail %}
 
-{% block title %}User{% endblock title %}
+{% block title %}User {{ user.username }}{% endblock title %}
 {% block css_include %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/community_user.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/images.css' %}">
 {% endblock css_include %}
 
 {% block content %}
@@ -29,8 +30,6 @@
                 </div>
             </div>
         </div>
-    </div>
-    <div class="right-column">
         <div class="trees-box">
             <h4>Trees</h4>
             {% if trees %}
@@ -43,13 +42,17 @@
             <p>This user has no public family trees yet.</p>
             {% endif %}
         </div>
+    </div>
+    <div class="right-column">
         <div class="images-box">
             <h4>Images</h4>
             {% if images %}
             <div class="images-container">
                 {% for image in images %}
                 <div class="image-container">
-                    <a href="#">
+                    <a href="#" hx-get="{% url 'genealogy:view_image' image.id %}" 
+                        hx-target="#modal-content" hx-trigger="click" hx-swap="innerHTML" data-bs-toggle="modal"
+                        data-bs-target="#modal">
                         <img src="{% thumbnail image.image 150x0 crop='smart' %}">
                     </a>
                 </div>
@@ -62,6 +65,7 @@
         </div>
     </div>
 </div>
+{% include "genealogy/modal_container.html" %}
 <script>
     function handleFollowEvent(event) {
         jsonData = JSON.parse(event.detail.xhr.response);

@@ -1,14 +1,22 @@
 .user-content {
-    padding: 20px;
+    gap: 20px;
     display: flex;
+    flex-direction: row;
+    width: 100%;
 }
 
 .left-column {
     max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .right-column {
     max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    flex: 2;
 }
 
 .user-info-box {

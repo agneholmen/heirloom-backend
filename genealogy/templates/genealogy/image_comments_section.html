@@ -1,7 +1,7 @@
 {% load crispy_forms_tags %}
 {% load bootstrap_icons %}
 
-<form class="modal-form" hx-post="{% url 'genealogy:image_add_comment' person.id image.id %}" hx-target="#comments-section" hx-swap="innerHTML">
+<form class="modal-form" hx-post="{% url 'genealogy:image_add_comment' image.id %}" hx-target="#comments-section" hx-swap="innerHTML">
     {% crispy comments_form %}
     <div class="row form-outline mb-1">
         <input type="submit" name="submit" value="Add Comment" class="btn btn-primary" id="submit-id-submit">
@@ -14,8 +14,8 @@
             <p><strong>{{ comment.user }}</strong> commented {{ comment.commented_at|timesince }} ago:</p>
             <i>{{ comment.comment }}</i>
         </div>
-        {% if comment.user == request.user %}
-        <a href="#" hx-post="{% url 'genealogy:image_delete_comment' person.id image.id comment.id %}" hx-target="#comments-section" 
+        {% if comment.user == request.user or role == 'owner' %}
+        <a href="#" hx-post="{% url 'genealogy:image_delete_comment' image.id comment.id %}" hx-target="#comments-section" 
             hx-swap="innerHTML" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
         {% bs_icon 'trash3' size='1.5em' color='red' %}
         </a>

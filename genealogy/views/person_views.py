@@ -1367,17 +1367,14 @@ def view_images(request, pk):
 
     return render(request, 'genealogy/view_images.html', {'person': this_person, 'images': images})
 
-# person/<int:person_pk>/images/<int:image_pk>/view
+# images/<int:image_pk>/view
 @login_required
-def view_image(request, person_pk, image_pk):
-    this_person = get_object_or_404(Person, pk=person_pk)
-    if this_person.tree.user != request.user:
-        raise Http404("Person not found in any of your trees.")
-
+def view_image(request, pk):
+    role = 'owner'
     try:
-        this_image = Image.objects.get(pk=image_pk)
+        this_image = Image.objects.get(pk=pk)
         if this_image.tree.user != request.user:
-            raise Http404("Image not found for this user.")
+            role = 'viewer'
     except Image.DoesNotExist:
         raise Http404("Image does not exist.")
     
@@ -1387,7 +1384,7 @@ def view_image(request, person_pk, image_pk):
     comment_form = ImageCommentAddForm()
     comments = ImageComment.objects.filter(image=this_image).order_by('-commented_at')
 
-    return render(request, 'genealogy/view_image_modal.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes, 'comments_form': comment_form, 'comments': comments})
+    return render(request, 'genealogy/view_image_modal.html', {'image': this_image, 'has_liked': has_liked, 'likes': likes, 'comments_form': comment_form, 'comments': comments, 'role': role})
 
 # person/<int:pk>/images/add
 @login_required
@@ -1461,21 +1458,17 @@ def delete_image(request, person_pk, image_pk):
     this_image.delete()
     messages.success(request, "Image successfully deleted!")
 
-    images = Image.objects.filter(id__in=ImagePerson.objects.filter(person=this_person).values('image'))
-
     return redirect('genealogy:view_images', pk=this_person.id)
 
-# person/<int:person_pk>/images/<int:image_pk>/like
+# images/<int:image_pk>/like
 @login_required
 @transaction.atomic
-def like_image(request, person_pk, image_pk):
-    this_person = get_object_or_404(Person, pk=person_pk)
-    if this_person.tree.user != request.user:
-        raise Http404("Person not found in any of your trees.")
+def like_image(request, pk):
+    role = 'owner'
 
-    this_image = get_object_or_404(Image, pk=image_pk)
+    this_image = get_object_or_404(Image, pk=pk)
     if this_image.tree.user != request.user:
-        raise Http404("Image not found for this user.") 
+        role = 'viewer'
     
     if ImageLike.objects.filter(image=this_image, user=request.user).exists():
         ImageLike.objects.filter(image=this_image, user=request.user).delete()
@@ -1489,19 +1482,17 @@ def like_image(request, person_pk, image_pk):
 
     likes = ImageLike.objects.filter(image=this_image).count()
 
-    return render(request, 'genealogy/image_like_section.html', {'person': this_person, 'image': this_image, 'has_liked': has_liked, 'likes': likes})
+    return render(request, 'genealogy/image_like_section.html', {'image': this_image, 'has_liked': has_liked, 'likes': likes})
 
-# person/<int:person_pk>/images/<int:image_pk>/comments/add
+# images/<int:image_pk>/comments/add
 @login_required
 @transaction.atomic
-def image_add_comment(request, person_pk, image_pk):
-    this_person = get_object_or_404(Person, pk=person_pk)
-    if this_person.tree.user != request.user:
-        raise Http404("Person not found in any of your trees.")
+def image_add_comment(request, pk):
+    role = 'owner'
 
-    this_image = get_object_or_404(Image, pk=image_pk)
+    this_image = get_object_or_404(Image, pk=pk)
     if this_image.tree.user != request.user:
-        raise Http404("Image not found for this user.")  
+        role = 'viewer'
     
     if request.method == 'POST':
         form = ImageCommentAddForm(request.POST)
@@ -1514,22 +1505,20 @@ def image_add_comment(request, person_pk, image_pk):
             comment.save()
 
             comments = ImageComment.objects.filter(image=this_image).order_by('-commented_at')
-            return render(request, 'genealogy/image_comments_section.html', {'person': this_person, 'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
+            return render(request, 'genealogy/image_comments_section.html', {'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
         else:
             response = JsonResponse({'errors': dict(form.errors)}, status=400)
             return response
 
-# person/<int:person_pk>/images/<int:image_pk>/comments/<int:comment_pk>/delete
+# images/<int:image_pk>/comments/<int:comment_pk>/delete
 @login_required
 @transaction.atomic
-def image_delete_comment(request, person_pk, image_pk, comment_pk):
-    this_person = get_object_or_404(Person, pk=person_pk)
-    if this_person.tree.user != request.user:
-        raise Http404("Person not found in any of your trees.")
+def image_delete_comment(request, image_pk, comment_pk):
+    role = 'owner'
 
     this_image = get_object_or_404(Image, pk=image_pk)
     if this_image.tree.user != request.user:
-        raise Http404("Image not found for this user.")    
+        role = 'viewer'
     
     this_comment = get_object_or_404(ImageComment, pk=comment_pk)
 
@@ -1537,7 +1526,7 @@ def image_delete_comment(request, person_pk, image_pk, comment_pk):
 
     comments = ImageComment.objects.filter(image=this_image).order_by('-commented_at')
 
-    return render(request, 'genealogy/image_comments_section.html', {'person': this_person, 'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments})
+    return render(request, 'genealogy/image_comments_section.html', {'image': this_image, 'comments_form': ImageCommentAddForm(), 'comments': comments, 'role': role})
 
 # person/<int:pk>/images/change-profile-photo
 @login_required
