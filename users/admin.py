@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Follow, User
+from .models import Action, Follow, User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -9,3 +9,8 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(Follow)
 class FollowAdmin(admin.ModelAdmin):
     list_display = ['user_from', 'user_to', 'created']
+
+@admin.register(Action)
+class ActionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'target', 'created']
+    list_filter = ['created']

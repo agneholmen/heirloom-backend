@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
 from django.db.models import Count
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 
@@ -55,6 +56,7 @@ def community_user(request, pk):
     )
 
 @login_required
+@transaction.atomic
 def follow_user(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.user in user.followers.all():

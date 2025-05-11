@@ -9,20 +9,9 @@ from django.shortcuts import get_object_or_404, render
 User = get_user_model()
 
 from .forms import (
-    LoginForm,
     UserEditForm,
     UserRegistrationForm
 )
-
-@login_required
-def home(request):
-    return render(
-        request,
-        'genealogy/home.html',
-        {
-            'section': 'home'
-        }
-    )
 
 # Is this used?
 def register(request):
