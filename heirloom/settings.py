@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django_htmx',
     'easy_thumbnails',
     'image_uploader_widget',
+    'records.apps.RecordsConfig',
 ]
 
 MIDDLEWARE = [

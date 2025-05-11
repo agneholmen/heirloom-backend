@@ -7,6 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('genealogy/', include('genealogy.urls', namespace="genealogy")),
     path('users/', include('users.urls', namespace="users")),
+    path('records/', include('records.urls', namespace="records")),
 ]
 
 if settings.DEBUG:

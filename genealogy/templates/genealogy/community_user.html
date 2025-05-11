@@ -22,7 +22,7 @@
                 <div class="follow-details">
                     <p class="detail" id="followers">{{ followers.count }} follower{{ followers|pluralize }}</p>
                     {% if user != request.user %}
-                    <button type="button" class="btn btn-primary" hx-post="{% url 'follow_user' user.id %}"
+                    <button type="button" class="btn btn-primary" hx-post="{% url 'genealogy:follow_user' user.id %}"
                         hx-swap="none" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' 
                         hx-trigger="click" hx-on::after-request="handleFollowEvent(event)">{% follow_status request.user user %}</button>
                     {% endif %}
