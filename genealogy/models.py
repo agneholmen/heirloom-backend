@@ -369,17 +369,17 @@ class Image(models.Model):
     class Meta:
         ordering = ['-created']
 
-class Image_Person(models.Model):
+class ImagePerson(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
 
-class Image_Comment(models.Model):
+class ImageComment(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
     comment = models.TextField(blank=False)
     commented_at = models.DateTimeField(auto_now_add=True)
 
-class Image_Like(models.Model):
+class ImageLike(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ForeignKey(Image, on_delete=models.CASCADE)
     liked_at = models.DateTimeField(auto_now_add=True)

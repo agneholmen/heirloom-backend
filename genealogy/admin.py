@@ -6,7 +6,7 @@ from .models import (
     Family,
     FamilyEvent,
     Image,
-    Image_Person,
+    ImagePerson,
     Person,
     Source, 
     Tree
@@ -53,6 +53,6 @@ class SourceAdmin(admin.ModelAdmin):
 class ImageAdmin(admin.ModelAdmin):
     list_display = ['user', 'tree', 'title', 'created', 'slug', 'image']
 
-@admin.register(Image_Person)
-class Image_PersonAdmin(admin.ModelAdmin):
+@admin.register(ImagePerson)
+class ImagePersonAdmin(admin.ModelAdmin):
     list_display = ['person', 'image']

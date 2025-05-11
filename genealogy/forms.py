@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.urls import reverse_lazy
-from .models import Event, FamilyEvent, Image, Image_Comment, Person, Tree
+from .models import Event, FamilyEvent, Image, ImageComment, Person, Tree
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Layout, Submit, Row, Column
@@ -517,6 +517,6 @@ class ImageCommentAddForm(forms.ModelForm):
         )
 
     class Meta:
-        model = Image_Comment
+        model = ImageComment
         fields = ['comment']
         widgets = {'comment': forms.Textarea(attrs={'rows': 2})}
