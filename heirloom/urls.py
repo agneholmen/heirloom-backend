@@ -8,6 +8,7 @@ urlpatterns = [
     path('genealogy/', include('genealogy.urls', namespace="genealogy")),
     path('users/', include('users.urls', namespace="users")),
     path('records/', include('records.urls', namespace="records")),
+    path('api/', include('genealogy.api.urls', namespace="api")),
 ]
 
 if settings.DEBUG:
