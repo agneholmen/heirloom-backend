@@ -4,4 +4,4 @@ from genealogy.models import Tree
 class TreeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tree
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'upload_date', 'private']

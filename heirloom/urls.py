@@ -9,6 +9,7 @@ urlpatterns = [
     path('users/', include('users.urls', namespace="users")),
     path('records/', include('records.urls', namespace="records")),
     path('api/', include('genealogy.api.urls', namespace="api")),
+    path('api/dj-rest-auth/', include('dj_rest_auth.urls')),
 ]
 
 if settings.DEBUG:
