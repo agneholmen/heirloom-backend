@@ -1,9 +1,13 @@
-from django.urls import path
-from .views import TreeView
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+from .views import PersonSearchView, TreeViewSet
 
 app_name = 'api'
 
+router = DefaultRouter()
+router.register(r'trees', TreeViewSet, basename='tree')
+
 urlpatterns = [
-    path('trees/', TreeView.as_view(), name='tree-list'),
-    path('trees/<int:pk>/', TreeView.as_view(), name='tree-detail'),
+    path('', include(router.urls)),
+    path('search/', view=PersonSearchView.as_view(), name='person-search'),
 ]

@@ -3,60 +3,78 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 
-from genealogy.models import Tree
+from genealogy.models import Person, Tree
 from genealogy import gedcom
-from .serializers import TreeSerializer
+from .serializers import PersonSerializer, TreeSerializer
 
-class TreeView(APIView):
+class PersonView(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+class PersonSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        queryset = Tree.objects.all().filter(user=request.user).order_by('name')
-        serializer = TreeSerializer(queryset, many=True)
+        tree = request.query_params.get('tree')
+        queryset = Person.objects.filter(tree=tree).order_by('last_name')
+
+        first_name = request.query_params.get('first_name')
+        last_name = request.query_params.get('last_name')
+
+        if first_name:
+            queryset = queryset.filter(first_name__icontains=first_name)
+        if last_name:
+            queryset = queryset.filter(last_name__icontains=last_name)
+
+        serializer = PersonSerializer(queryset, many=True)
         return Response(serializer.data)
     
-    def post(self, request):
-        # request.user is automatically set by IsAuthenticated
-        data = request.data.copy()  # mutable copy
-        data['user'] = request.user.id  # attach current user
+class TreeViewSet(ModelViewSet):
+    serializer_class = TreeSerializer
+    permission_classes = [IsAuthenticated]
 
-        serializer = TreeSerializer(data=data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        return Tree.objects.filter(user=self.request.user).order_by('name')
 
-        # Create the tree instance (but don't save yet)
+    def create(self, request, *args, **kwargs):
+        """
+        Custom create to handle GEDCOM file upload and parsing
+        """
+        # Make data mutable
+        data = request.data.copy()
+        data['user'] = request.user.id
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Save the tree (without GEDCOM first)
         tree = serializer.save()
 
-        # Handle GEDCOM file if uploaded
+        # Handle GEDCOM file if provided
         gedcom_file = request.FILES.get('gedcom_file')
         if gedcom_file:
             tree.gedcom_file = gedcom_file
-            tree.save()  # Save again so file is stored
+            tree.save(update_fields=['gedcom_file'])  # Save file
 
-            # Parse the GEDCOM and populate the tree
             try:
-                gedcom.handle_uploaded_file(tree)  # Your existing parser function
+                gedcom.handle_uploaded_file(tree)
             except Exception as e:
-                # Optional: delete tree if parsing fails?
+                # Optional: delete tree on parse failure?
                 tree.delete()
                 return Response(
-                    {"error": "GEDCOM file is invalid or corrupted.", "details": str(e)},
+                    {"error": "GEDCOM processing failed", "details": str(e)},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        return Response(TreeSerializer(tree).data, status=status.HTTP_201_CREATED)
-    
-    def delete(self, request, pk=None):
-        tree = get_object_or_404(Tree, id=pk, user=request.user)
-        tree.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    def patch(self, request, pk=None):
-        tree = get_object_or_404(Tree, id=pk, user=request.user)
-        serializer = TreeSerializer(tree, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_destroy(self, instance):
+        """
+        Optional: clean up GEDCOM file on delete
+        """
+        if instance.gedcom_file:
+            instance.gedcom_file.delete(save=False)
+        instance.delete()

@@ -16,4 +16,20 @@ class TreeSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         if not value or not value.strip():
             raise serializers.ValidationError("Tree name is required.")
+        if len(value.strip()) > 100:
+            raise serializers.ValidationError("Tree name cannot exceed 100 characters.")
         return value.strip()
+    
+class PersonSerializer(serializers.ModelSerializer):
+    birth_year = serializers.SerializerMethodField()
+    death_year = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'birth_year', 'death_year']
+
+    def get_birth_year(self, obj):
+        return obj.get_birth_year()
+    
+    def get_death_year(self, obj):
+        return obj.get_death_year()
