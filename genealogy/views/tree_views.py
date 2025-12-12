@@ -14,6 +14,8 @@ from ..models import Child, Event, Family, FamilyEvent, Person, Tree
 
 from functools import reduce
 
+from genealogy.constants import NAMES_REPLACE, SURNAMES_REPLACE
+
 import datetime
 import json
 
@@ -36,34 +38,6 @@ FAMILY_EVENT_MAPPING = {
     'banns': 'MARB',
     'engagement': 'ENGA',
 }
-
-NAMES_REPLACE = [
-    ["Annika", "Annicka"],
-    ["Brita", "Britta"],
-    ["Cajsa", "Kajsa", "Caisa"],
-    ["Carl", "Karl"],
-    ["Catharina", "Katharina", "Katarina"],
-    ["Christina", "Kristina"],
-    ["Elisabet", "Elisabeth"],
-    ["Erik", "Eric"],
-    ["Fredrik", "Fredric"],
-    ["Gustaf", "Gustav"],
-    ["Halvar", "Halvard"],
-    ["Kerstin", "Kjerstin"],
-    ["Maja", "Maria"],
-    ["Olof", "Olov"],
-    ["Oscar", "Oskar"],
-    ["Per", "Pär", "Pehr", "Pähr"],
-    ["Sofia", "Sophia"],
-    ["Ulrika", "Ulrica"],
-]
-
-SURNAMES_REPLACE = [
-    ["Eriksson", "Ersson"],
-    ["Eriksdotter", "Ersdotter"],
-    ["Olofsson", "Olsson"],
-    ["Olofsdotter", "Olsdotter"],
-]
 
 # tree/
 @login_required
@@ -434,9 +408,6 @@ def search(request):
                         name_conditions = name_conditions & name_or_conditions
                     else:
                         name_conditions = name_or_conditions
-
-            birth_conditions = []
-            death_conditions = []
 
             if cd['birth_place']:
                 query += f"&birth_place={cd['birth_place']}"
