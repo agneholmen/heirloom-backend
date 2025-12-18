@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import OuterRef, PositiveSmallIntegerField, Q, Subquery
 from django.db.models.signals import post_delete, pre_delete
 from django.dispatch import receiver
 from django.utils.text import slugify
@@ -108,17 +108,11 @@ class Person(models.Model):
         else:
             return ""
     
+    # Birth
     def get_birth_date(self):
         birth_event = self.get_birth_event()
         if birth_event:
             return birth_event.date
-        else:
-            return None
-        
-    def get_death_date(self):
-        death_event = self.get_death_event()
-        if death_event:
-            return death_event.date
         else:
             return None
         
@@ -128,28 +122,14 @@ class Person(models.Model):
             return birth_event.year
         else:
             return None
-        
-    def get_death_year(self):
-        death_event = self.get_death_event()
-        if death_event:
-            return death_event.year
-        else:
-            return None
-        
+
     def get_birth_place(self):
         birth_event = self.get_birth_event()
         if birth_event:
             return birth_event.place
         else:
             return None
-        
-    def get_death_place(self):
-        death_event = self.get_death_event()
-        if death_event:
-            return death_event.place
-        else:
-            return None
-
+       
     def get_birth_event(self):
         try:
             return Event.objects.get(person=self, event_type='birth')
@@ -157,6 +137,31 @@ class Person(models.Model):
             return None
         except Event.MultipleObjectsReturned:
             print(f"Multiple birth events found for {self}. Returning None.")
+            return None
+        
+    def has_birth_event(self):
+        return Event.objects.filter(person=self, event_type='birth').exists()
+    
+    # Death  
+    def get_death_year(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.year
+        else:
+            return None
+         
+    def get_death_place(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.place
+        else:
+            return None
+
+    def get_death_date(self):
+        death_event = self.get_death_event()
+        if death_event:
+            return death_event.date
+        else:
             return None
         
     def get_death_event(self):
@@ -168,11 +173,107 @@ class Person(models.Model):
             print(f"Multiple death events found for {self}. Returning None.")
             return None
         
-    def has_birth_event(self):
-        return Event.objects.filter(person=self, event_type='birth').exists()
-    
     def has_death_event(self):
         return Event.objects.filter(person=self, event_type='death').exists()
+
+    # Serializer data methods
+    def get_birth_data(self):
+        event = self.get_birth_event()
+        if not event:
+            return None
+        return {
+            'date': event.date,
+            'year': event.year,
+            'place': event.place,
+        }
+
+    def get_death_data(self):
+        event = self.get_death_event()
+        if not event:
+            return None
+        return {
+            'date': event.date,
+            'year': event.year,
+            'place': event.place,
+        }
+    
+    def get_family_data(self):
+        data = {
+            'father': None,
+            'mother': None,
+            'siblings': [],
+            'half_siblings': [],
+            'families': [],
+        }
+
+        birth_year_subquery = Event.objects.filter(person=OuterRef('person'), event_type='birth').values('year')[:1]
+
+        father = self.get_father()
+        mother = self.get_mother()
+        siblings = None
+        half_siblings = None
+        families = []
+        children_objects = Child.objects.filter(person=self)
+        if children_objects:
+            siblings = Child.objects.filter(family=children_objects[0].family).exclude(id=children_objects[0].id).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
+
+            half_sibling_queries = Q()
+            if father is not None:
+                half_sibling_queries |= Q(husband=father) & ~Q(wife=mother)
+            if mother is not None:
+                half_sibling_queries |= Q(wife=mother) & ~Q(husband=father)
+
+            half_sibling_families = Family.objects.filter(half_sibling_queries)
+            half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(person=self).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
+
+        if father:
+            data['father'] = {
+                'id': father.id,
+                'full_name': father.get_name_years(),
+            }
+        if mother:
+            data['mother'] = {
+                'id': mother.id,
+                'full_name': mother.get_name_years(),
+            }
+        if siblings:
+            for s in siblings:
+                data['siblings'].append({
+                    'id': s.person.id,
+                    'full_name': s.person.get_name_years(),
+            })
+        if half_siblings:
+            for h in half_siblings:
+                data[half_siblings].append({
+                    'id': h.person.id,
+                    'full_name': h.person.get_name_years(),
+                })
+
+        family_objects = Family.objects.filter(Q(husband=self) | Q(wife=self))
+        if family_objects:
+            for f in family_objects:
+                family = {
+                    'children': []
+                }
+                if f.husband == self and f.wife:
+                    family['partner_id'] = f.wife.id
+                    family['partner_full_name'] = f.wife.get_name_years()
+                if f.wife == self and f.husband:
+                    family['partner_id'] = f.husband.id
+                    family['partner_full_name'] = f.husband.get_name_years()
+
+                children = Child.objects.filter(family=f).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
+                for child in children:
+                    family['children'].append({
+                        'child_id': child.person.id,
+                        'child_full_name': child.person.get_name_years(),
+                    })
+
+                families.append(family)
+
+            data['families'] = families
+
+        return data
 
     def __str__(self):
         return " ".join(filter(None, [self.first_name, self.last_name]))
@@ -262,7 +363,7 @@ class Event(models.Model):
         # Add other event types as needed
     ]
 
-    person = models.ForeignKey(Person, on_delete=models.CASCADE)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="events")
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     date = models.CharField(max_length=100, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -310,7 +411,7 @@ class FamilyEvent(models.Model):
         ('marriage', 'Marriage'),
     ]
 
-    family = models.ForeignKey(Family, on_delete=models.CASCADE)
+    family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="family_events")
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     date = models.CharField(max_length=100, blank=True)
     year = models.PositiveSmallIntegerField(null=True, blank=True)

@@ -9,12 +9,20 @@ from rest_framework.permissions import IsAuthenticated
 from genealogy.constants import NAMES_REPLACE, SURNAMES_REPLACE
 from genealogy.models import Person, Tree
 from genealogy import gedcom
-from .serializers import PersonSerializer, TreeSerializer
+from .serializers import PersonSearchSerializer, PersonSerializer, TreeSerializer
 
 from functools import reduce
 
-class PersonView(ModelViewSet):
+class PersonViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
+    serializer_class = PersonSerializer
+    
+    def get_queryset(self):
+        return Person.objects.filter(
+            tree__id=self.kwargs["tree_pk"],
+            tree__user=self.request.user,
+        )
+
 
 class PersonSearchView(APIView):
     permission_classes = [IsAuthenticated]
@@ -103,7 +111,7 @@ class PersonSearchView(APIView):
             death_query = Q(event__event_type='death') & reduce(lambda x, y: x & y, death_conditions)
             queryset = queryset.filter(death_query)
 
-        serializer = PersonSerializer(queryset, many=True)
+        serializer = PersonSearchSerializer(queryset, many=True)
         return Response(serializer.data)
     
 class TreeViewSet(ModelViewSet):
