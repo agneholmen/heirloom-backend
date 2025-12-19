@@ -8,6 +8,7 @@ from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from datetime import date
 from easy_thumbnails.files import get_thumbnailer
+from itertools import chain
 
 from .date_functions import extract_year
 
@@ -85,13 +86,18 @@ class Person(models.Model):
             return None
 
     def get_name_years(self):
+        string = self.get_name()
+
+        string += f" {self.get_years()}"
+
+        return string.strip()
+    
+    def get_name(self):
         string = ""
         if self.first_name:
             string += self.first_name
         if self.last_name:
             string += f" {self.last_name}"
-
-        string += f" {self.get_years()}"
 
         return string.strip()
     
@@ -176,28 +182,8 @@ class Person(models.Model):
     def has_death_event(self):
         return Event.objects.filter(person=self, event_type='death').exists()
 
-    # Serializer data methods
-    def get_birth_data(self):
-        event = self.get_birth_event()
-        if not event:
-            return None
-        return {
-            'date': event.date,
-            'year': event.year,
-            'place': event.place,
-        }
-
-    def get_death_data(self):
-        event = self.get_death_event()
-        if not event:
-            return None
-        return {
-            'date': event.date,
-            'year': event.year,
-            'place': event.place,
-        }
-    
-    def get_family_data(self):
+    # Serializer data method
+    def get_details_data(self):
         data = {
             'father': None,
             'mother': None,
@@ -206,10 +192,83 @@ class Person(models.Model):
             'families': [],
         }
 
+
+        timeline_events = []
+        timeline_events_no_year = []
+
+        birth_event = self.get_birth_event()
+        birth_year = birth_event.year if birth_event else None
+        if birth_event:
+            data['birth'] = {
+                'date': birth_event.date,
+                'year': birth_event.year,
+                'place': birth_event.place,
+            }
+
+        death_event = self.get_death_event()
+        death_year = death_event.year if death_event else None
+        if death_event:
+            data['death'] = {
+                'date': death_event.date,
+                'year': death_event.year,
+                'place': death_event.place,
+            }
+
+        if birth_year and death_year:
+            data['years'] = f"({birth_year} - {death_year})"
+        elif birth_year:
+            data['years'] = f"({birth_year} - )"
+        elif death_year:
+            data['years'] = f"( - {death_year})"
+        else:
+            data['years'] = ""
+
+        mother = self.get_mother()
+        father = self.get_father()
+
+        if father:
+            data['father'] = {
+                'id': father.id,
+                'full_name': father.get_name_years(),
+            }
+        f_death = father.get_death_event()
+        if not (f_death and death_year and f_death.year and f_death.year > death_year) and f_death and f_death.year:
+            timeline_events.append(
+                {
+                    'year': f_death.year, 
+                    'description': f_death.description, 
+                    'date': f_death.date,
+                    'event_type': 'death', 
+                    'event_type_full': "Death of father",
+                    'place': f_death.place,
+                    'person_id': father.id,
+                    'person_name': father.get_name(),
+                    'model_type': 'relative',
+                }
+            )
+        if mother:
+            data['mother'] = {
+                'id': mother.id,
+                'full_name': mother.get_name_years(),
+            }
+            m_death = mother.get_death_event()
+            if not (m_death and death_year and m_death.year and m_death.year > death_year) and m_death and m_death.year:
+                timeline_events.append(
+                    {
+                        'year': m_death.year,
+                        'description': "", 
+                        'date': m_death.date,
+                        'event_type': 'death', 
+                        'event_type_full': "Death of mother",
+                        'place': m_death.place,
+                        'person_id': mother.id,
+                        'person_name': mother.get_name(),
+                        'model_type': 'relative',
+                    }
+                )
+
         birth_year_subquery = Event.objects.filter(person=OuterRef('person'), event_type='birth').values('year')[:1]
 
-        father = self.get_father()
-        mother = self.get_mother()
         siblings = None
         half_siblings = None
         families = []
@@ -226,16 +285,6 @@ class Person(models.Model):
             half_sibling_families = Family.objects.filter(half_sibling_queries)
             half_siblings = Child.objects.filter(family__in=half_sibling_families).exclude(person=self).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
 
-        if father:
-            data['father'] = {
-                'id': father.id,
-                'full_name': father.get_name_years(),
-            }
-        if mother:
-            data['mother'] = {
-                'id': mother.id,
-                'full_name': mother.get_name_years(),
-            }
         if siblings:
             for s in siblings:
                 data['siblings'].append({
@@ -253,25 +302,179 @@ class Person(models.Model):
         if family_objects:
             for f in family_objects:
                 family = {
+                    'partner': {},
                     'children': []
                 }
+
+                partner = None
                 if f.husband == self and f.wife:
-                    family['partner_id'] = f.wife.id
-                    family['partner_full_name'] = f.wife.get_name_years()
+                    partner = f.wife
                 if f.wife == self and f.husband:
-                    family['partner_id'] = f.husband.id
-                    family['partner_full_name'] = f.husband.get_name_years()
+                    partner = f.husband
+
+                if partner:
+                    family['partner']['id'] = partner.id
+                    family['partner']['full_name'] = partner.get_name_years()
+                
+                    p_death = partner.get_death_event()
+                    if p_death and death_year and p_death.year and p_death.year < death_year:
+                        timeline_events.append(
+                            {
+                                'year': p_death.year, 
+                                'description': p_death.description, 
+                                'date': p_death.date,
+                                'event_type': 'death', 
+                                'event_type_full': f"Death of {'husband' if partner.sex == 'M' else 'wife' if partner.sex == 'F' else 'partner'}",
+                                'place': p_death.place,
+                                'person_id': partner.id,
+                                'person_name': partner.get_name(),
+                                'model_type': 'relative',
+                            }
+                        )
 
                 children = Child.objects.filter(family=f).annotate(birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())).order_by('birth_year')
                 for child in children:
                     family['children'].append({
-                        'child_id': child.person.id,
-                        'child_full_name': child.person.get_name_years(),
+                        'id': child.person.id,
+                        'full_name': child.person.get_name_years(),
                     })
+                    c_birth = child.person.get_birth_event()
+                    c_death = child.person.get_death_event()
+                    if c_birth and c_birth.year:
+                        timeline_events.append(
+                            {
+                                'year': c_birth.year, 
+                                'description': c_birth.description, 
+                                'date': c_birth.date,
+                                'event_type': 'birth', 
+                                'event_type_full': f"Birth of {'son' if child.person.sex == 'M' else 'daughter' if child.person.sex == 'F' else 'child'}",
+                                'place': c_birth.place, 
+                                'person_id': child.person.id,
+                                'person_name': child.person.get_name(),
+                                'model_type': 'relative',
+                            }
+                        )
+                    if c_death and death_year and c_death.year and c_death.year < death_year:
+                        timeline_events.append(
+                            {
+                                'year': c_death.year, 
+                                'description': c_death.description, 
+                                'date': c_death.date,
+                                'event_type': 'birth', 
+                                'event_type_full': f"Death of {'son' if child.person.sex == 'M' else 'daughter' if child.person.sex == 'F' else 'child'}",
+                                'place': c_death.place, 
+                                'person_id': child.person.id,
+                                'person_name': child.person.get_name(),
+                                'model_type': 'relative',
+                            }
+                        )
 
                 families.append(family)
 
             data['families'] = families
+
+            family_events = FamilyEvent.objects.filter(family__in=family_objects).order_by('year')
+
+            for e in family_events:
+                new_event = {
+                    'year': e.year, 
+                    'description': e.description, 
+                    'date': e.date,
+                    'event_type': e.event_type, 
+                    'event_type_full': e.get_event_type_display(),
+                    'person_id': e.family.husband.id if e.family.wife == self else e.family.wife.id,
+                    'person_name': e.family.husband.get_name() if e.family.wife == self else e.family.wife.get_name(),
+                    'place': e.place, 
+                    'id': e.id, 
+                    'model_type': 'family'
+                }
+            if new_event['year']:
+                timeline_events.append(new_event)
+            else:
+                timeline_events_no_year.append(new_event)
+
+        for s in chain(siblings or [], half_siblings or []):
+            s_birth = s.person.get_birth_event()
+            s_death = s.person.get_death_event()
+            if s_birth and birth_year and s_birth.year and s_birth.year > birth_year and not (death_year and s_birth.year > death_year):
+                timeline_events.append(
+                    {
+                        'year': s_birth.year, 
+                        'description': "", 
+                        'date': s_birth.date,
+                        'event_type': 'birth', 
+                        'event_type_full': f"Birth of {'brother' if s.person.sex == 'M' else 'sister' if s.person.sex == 'F' else 'sibling'}",
+                        'place': s_birth.place, 
+                        'person_id': s.person.id,
+                        'person_name': s.person.get_name(),
+                        'model_type': 'relative',
+                    }
+                )
+            if s_death and death_year and s_death.year and s_death.year < death_year and not (birth_year and s_death.year < birth_year):
+                timeline_events.append(
+                    {
+                        'year': s_death.year, 
+                        'description': "", 
+                        'date': s_death.date,
+                        'event_type': 'death', 
+                        'event_type_full': f"Death of {'brother' if s.person.sex == 'M' else 'sister' if s.person.sex == 'F' else 'sibling'}",
+                        'place': s_death.place,
+                        'person_id': s.person.id,
+                        'person_name': s.person.get_name(),
+                        'model_type': 'relative',
+                    }
+                )
+
+        events = Event.objects.filter(person=self).order_by('year')
+        for e in events:
+            if e.event_type not in ['birth', 'death']:
+                new_event = {
+                        'year': e.year, 
+                        'description': e.description,
+                        'date': e.date,
+                        'event_type': e.event_type, 
+                        'event_type_full': e.get_event_type_display(),
+                        'place': e.place, 
+                        'id': e.id, 
+                        'model_type': 'basic'
+                    }
+                if new_event['year']:
+                    timeline_events.append(new_event)
+                else:
+                    timeline_events_no_year.append(new_event)
+
+        timeline_events.sort(key=lambda x: x['year'])
+
+        if birth_event:
+            timeline_events.insert(0, 
+                               {'year': birth_year, 
+                                'date': birth_event.date,
+                                'description': birth_event.description, 
+                                'event_type': 'birth',
+                                'event_type_full': 'Birth', 
+                                'place': birth_event.place, 
+                                'id': birth_event.id, 
+                                'model_type': 'basic'
+                                }
+                            )
+            
+        if death_event:
+            timeline_events.append(
+                {
+                    'year': death_year, 
+                    'date': death_event.date,
+                    'description': death_event.description, 
+                    'event_type': 'death', 
+                    'event_type_full': 'Death',
+                    'place': death_event.place, 
+                    'id': death_event.id, 
+                    'model_type': 'basic'
+                }
+            )
+
+        timeline_events.extend(timeline_events_no_year)
+
+        data['events'] = timeline_events
 
         return data
 
