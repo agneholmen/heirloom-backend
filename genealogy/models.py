@@ -231,21 +231,21 @@ class Person(models.Model):
                 'id': father.id,
                 'full_name': father.get_name_years(),
             }
-        f_death = father.get_death_event()
-        if not (f_death and death_year and f_death.year and f_death.year > death_year) and f_death and f_death.year:
-            timeline_events.append(
-                {
-                    'year': f_death.year, 
-                    'description': f_death.description, 
-                    'date': f_death.date,
-                    'event_type': 'death', 
-                    'event_type_full': "Death of father",
-                    'place': f_death.place,
-                    'person_id': father.id,
-                    'person_name': father.get_name(),
-                    'model_type': 'relative',
-                }
-            )
+            f_death = father.get_death_event()
+            if not (f_death and death_year and f_death.year and f_death.year > death_year) and f_death and f_death.year:
+                timeline_events.append(
+                    {
+                        'year': f_death.year, 
+                        'description': f_death.description, 
+                        'date': f_death.date,
+                        'event_type': 'death', 
+                        'event_type_full': "Death of father",
+                        'place': f_death.place,
+                        'person_id': father.id,
+                        'person_name': father.get_name(),
+                        'model_type': 'relative',
+                    }
+                )
         if mother:
             data['mother'] = {
                 'id': mother.id,
