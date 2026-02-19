@@ -6,6 +6,8 @@ from django.db.models import Count, OuterRef, PositiveSmallIntegerField, Q, Subq
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 from .common import *
 from ..forms import EditTreeForm, NewTreeForm, SearchForm
@@ -194,7 +196,8 @@ def edit_tree(request, pk):
     )
 
 # tree/<int:pk>/download
-@login_required
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def download_tree(request, pk):
     this_tree = get_object_or_404(Tree, pk=pk)
     if this_tree.user != request.user:

@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 
 from genealogy.constants import NAMES_REPLACE, SURNAMES_REPLACE
-from genealogy.models import Person, Tree, Family, Child, Event
+from genealogy.models import Person, Tree, Family, Child, Event, Image, ImagePerson
 from genealogy import gedcom
 from genealogy.views.common import get_default_image, get_profile_photo
 from .serializers import PersonSearchSerializer, PersonSerializer, TreeSerializer
@@ -25,6 +25,145 @@ class PersonViewSet(ModelViewSet):
             tree__id=self.kwargs["tree_pk"],
             tree__user=self.request.user,
         )
+    
+    @action(detail=True, methods=['get'])
+    def images(self, request, tree_pk=None, pk=None):
+        """Get all images for a person"""
+        person = self.get_object()
+        image_persons = ImagePerson.objects.filter(person=person).select_related('image')
+        
+        images_data = []
+        for ip in image_persons:
+            images_data.append({
+                'id': ip.image.id,
+                'title': ip.image.title,
+                'description': ip.image.description,
+                'image_url': ip.image.image.url,
+                'created': ip.image.created,
+                'is_profile': person.profile_image == ip.image if person.profile_image else False
+            })
+        
+        return Response(images_data)
+    
+    @action(detail=True, methods=['post'])
+    def upload_image(self, request, tree_pk=None, pk=None):
+        """Upload a new image for a person"""
+        person = self.get_object()
+        tree = person.tree
+        
+        if not request.FILES.get('image'):
+            return Response(
+                {"error": "No image file provided"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        title = request.data.get('title', f'Image of {person.get_name()}')
+        description = request.data.get('description', '')
+        
+        # Create image
+        image = Image.objects.create(
+            user=request.user,
+            tree=tree,
+            title=title,
+            description=description,
+            image=request.FILES['image'],
+            private=False
+        )
+        
+        # Link image to person
+        ImagePerson.objects.create(person=person, image=image)
+        
+        return Response({
+            'id': image.id,
+            'title': image.title,
+            'description': image.description,
+            'image_url': image.image.url,
+            'created': image.created,
+            'is_profile': False
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['delete'], url_path='delete_image/(?P<image_id>[^/.]+)')
+    def delete_image(self, request, tree_pk=None, pk=None, image_id=None):
+        """Delete an image"""
+        person = self.get_object()
+        
+        try:
+            image = Image.objects.get(id=image_id, tree=person.tree, user=request.user)
+        except Image.DoesNotExist:
+            return Response(
+                {"error": "Image not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # If this is the profile image, clear it
+        if person.profile_image == image:
+            person.profile_image = None
+            person.save()
+        
+        image.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=True, methods=['patch'], url_path='set_profile_image/(?P<image_id>[^/.]+)')
+    def set_profile_image(self, request, tree_pk=None, pk=None, image_id=None):
+        """Set an image as profile picture"""
+        person = self.get_object()
+        
+        try:
+            image = Image.objects.get(id=image_id, tree=person.tree)
+            # Check if image is linked to this person
+            ImagePerson.objects.get(person=person, image=image)
+        except (Image.DoesNotExist, ImagePerson.DoesNotExist):
+            return Response(
+                {"error": "Image not found or not linked to this person"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        person.profile_image = image
+        person.save()
+        
+        return Response({
+            'message': 'Profile image set successfully',
+            'profile_image': image.image.url
+        })
+    
+    @action(detail=True, methods=['post', 'patch'], url_path='update_event/(?P<event_type>[^/.]+)')
+    def update_event(self, request, tree_pk=None, pk=None, event_type=None):
+        """Create or update a birth/death event"""
+        person = self.get_object()
+        
+        if event_type not in ['birth', 'death']:
+            return Response(
+                {"error": "Event type must be 'birth' or 'death'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        date = request.data.get('date', '')
+        place = request.data.get('place', '')
+        
+        # Get or create the event
+        event, created = Event.objects.get_or_create(
+            person=person,
+            event_type=event_type,
+            defaults={
+                'date': date,
+                'place': place
+            }
+        )
+        
+        # Update if it already existed
+        if not created:
+            event.date = date
+            event.place = place
+            event.save()
+        
+        return Response({
+            'message': f'{event_type.capitalize()} event {"created" if created else "updated"} successfully',
+            'event': {
+                'type': event_type,
+                'date': event.date,
+                'place': event.place
+            }
+        })
 
 
 class PersonSearchView(APIView):

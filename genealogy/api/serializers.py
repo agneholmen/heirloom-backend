@@ -35,13 +35,14 @@ class PersonSearchSerializer(serializers.ModelSerializer):
         return obj.get_death_year()
     
 class PersonSerializer(serializers.ModelSerializer):
-    sex = serializers.CharField(source='get_sex_display', read_only=True)
+    sex_display = serializers.CharField(source='get_sex_display', read_only=True)
     details = serializers.SerializerMethodField()
     profile_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Person
-        fields = ['id', 'first_name', 'last_name', 'tree', 'sex', 'details', 'profile_image']
+        fields = ['id', 'first_name', 'last_name', 'tree', 'sex', 'sex_display', 'details', 'profile_image']
+        read_only_fields = ['id', 'tree', 'sex_display', 'details', 'profile_image']
     
     def get_profile_image(self, obj):
         """Return profile image URL or default avatar"""
