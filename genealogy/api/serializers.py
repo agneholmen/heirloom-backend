@@ -37,10 +37,19 @@ class PersonSearchSerializer(serializers.ModelSerializer):
 class PersonSerializer(serializers.ModelSerializer):
     sex = serializers.CharField(source='get_sex_display', read_only=True)
     details = serializers.SerializerMethodField()
+    profile_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Person
-        fields = ['id', 'first_name', 'last_name', 'tree', 'sex', 'details']
+        fields = ['id', 'first_name', 'last_name', 'tree', 'sex', 'details', 'profile_image']
+    
+    def get_profile_image(self, obj):
+        """Return profile image URL or default avatar"""
+        from genealogy.views.common import get_default_image, get_profile_photo
+        
+        if obj.profile_image:
+            return get_profile_photo(obj)
+        return get_default_image(obj.sex)
     
     def get_relatives(self, obj):
         return obj.get_family_data()

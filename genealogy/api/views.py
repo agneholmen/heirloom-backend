@@ -1,14 +1,17 @@
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, PositiveSmallIntegerField
+from django.shortcuts import get_object_or_404
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 
 from genealogy.constants import NAMES_REPLACE, SURNAMES_REPLACE
-from genealogy.models import Person, Tree
+from genealogy.models import Person, Tree, Family, Child, Event
 from genealogy import gedcom
+from genealogy.views.common import get_default_image, get_profile_photo
 from .serializers import PersonSearchSerializer, PersonSerializer, TreeSerializer
 
 from functools import reduce
@@ -161,3 +164,144 @@ class TreeViewSet(ModelViewSet):
         if instance.gedcom_file:
             instance.gedcom_file.delete(save=False)
         instance.delete()
+    
+    @action(detail=True, methods=['get'], url_path='view/(?P<person_pk>[^/.]+)')
+    def tree_view(self, request, pk=None, person_pk=None):
+        """
+        Get tree data for visualization
+        Returns: Tree data with family structure for the specified person
+        """
+        tree = self.get_object()
+        
+        # Get person count
+        person_count = Person.objects.filter(tree=tree).count()
+        
+        # If no people in tree
+        if person_count == 0:
+            return Response({
+                'tree_id': tree.id,
+                'tree_name': tree.name,
+                'person_count': 0,
+                'tree_data': None
+            })
+        
+        # If person_pk is 0, get the first person
+        if person_pk == '0':
+            first_person = Person.objects.filter(tree=tree).order_by('id').first()
+            if not first_person:
+                return Response({
+                    'tree_id': tree.id,
+                    'tree_name': tree.name,
+                    'person_count': 0,
+                    'tree_data': None
+                })
+            person_pk = first_person.id
+        
+        # Get the specified person
+        try:
+            first_person = Person.objects.get(pk=person_pk, tree=tree)
+        except Person.DoesNotExist:
+            return Response(
+                {"error": "Person not found in this tree"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Build tree data
+        generations = 3
+        people_data = self._get_person_tree_data(first_person, tree.id)
+        people_data['parents'] = self._tree_get_parents(first_person, 1, generations, tree.id)
+        
+        # Get partner and children
+        family = Family.objects.filter(Q(husband=first_person) | Q(wife=first_person)).first()
+        if family:
+            if family.husband == first_person and family.wife:
+                people_data['partner'] = self._get_person_tree_data(family.wife, tree.id)
+            elif family.wife == first_person and family.husband:
+                people_data['partner'] = self._get_person_tree_data(family.husband, tree.id)
+            
+            # Get children
+            birth_year_subquery = Event.objects.filter(
+                person=OuterRef('person'), 
+                event_type='birth'
+            ).values('year')[:1]
+            
+            children = Child.objects.filter(family=family).annotate(
+                birth_year=Subquery(birth_year_subquery, output_field=PositiveSmallIntegerField())
+            ).order_by('birth_year')
+            
+            if children:
+                people_data['children'] = []
+                for child in children:
+                    people_data['children'].append(self._get_person_tree_data(child.person, tree.id))
+        
+        return Response({
+            'tree_id': tree.id,
+            'tree_name': tree.name,
+            'person_count': person_count,
+            'tree_data': people_data
+        })
+    
+    def _get_person_tree_data(self, person, tree_id):
+        """Helper method to get person data for tree visualization"""
+        return {
+            'first_name': person.first_name,
+            'last_name': person.last_name,
+            'id': person.id,
+            'image': get_default_image(person.sex) if not person.profile_image else get_profile_photo(person),
+            'years': person.get_years(),
+            'person_url': f'/tree/{tree_id}/person/{person.id}',
+            'tree_url': f'/tree/{tree_id}/person/{person.id}',
+        }
+    
+    def _tree_get_parents(self, current_person, generation, max_generation, tree_id):
+        """Helper method to recursively get parents"""
+        if generation == max_generation:
+            return []
+        
+        parents = []
+        father = current_person.get_father()
+        mother = current_person.get_mother()
+        
+        if father:
+            parents.append({
+                'first_name': father.first_name,
+                'last_name': father.last_name,
+                'id': father.id,
+                'image': get_default_image(father.sex) if not father.profile_image else get_profile_photo(father),
+                'years': father.get_years(),
+                'person_url': f'/tree/{tree_id}/person/{father.id}',
+                'tree_url': f'/tree/{tree_id}/person/{father.id}',
+                'parent_type': 'father',
+                'parents': self._tree_get_parents(father, generation + 1, max_generation, tree_id)
+            })
+        else:
+            parents.append({
+                'id': 0,
+                'child_id': current_person.id,
+                'person_url': f'/api/genealogy/person/{current_person.id}/add-parent/father',
+                'parent_type': 'father',
+                'parents': []
+            })
+        
+        if mother:
+            parents.append({
+                'first_name': mother.first_name,
+                'last_name': mother.last_name,
+                'id': mother.id,
+                'image': get_default_image(mother.sex) if not mother.profile_image else get_profile_photo(mother),
+                'years': mother.get_years(),
+                'person_url': f'/tree/{tree_id}/person/{mother.id}',
+                'tree_url': f'/tree/{tree_id}/person/{mother.id}',
+                'parent_type': 'mother',
+                'parents': self._tree_get_parents(mother, generation + 1, max_generation, tree_id)
+            })
+        else:
+            parents.append({
+                'id': 0,
+                'child_id': current_person.id,
+                'person_url': f'/api/genealogy/person/{current_person.id}/add-parent/mother',
+                'parent_type': 'mother',
+                'parents': []
+            })
+        
+        return parents
