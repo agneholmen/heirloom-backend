@@ -74,6 +74,8 @@ class Person(models.Model):
     def get_father(self):
         try:
             family = Family.objects.filter(children__person=self).first()
+            if family and family.husband_id == self.id:
+                return None
             return family.husband
         except:
             return None
@@ -81,6 +83,8 @@ class Person(models.Model):
     def get_mother(self):
         try:
             family = Family.objects.filter(children__person=self).first()
+            if family and family.wife_id == self.id:
+                return None
             return family.wife
         except:
             return None
@@ -293,7 +297,7 @@ class Person(models.Model):
             })
         if half_siblings:
             for h in half_siblings:
-                data[half_siblings].append({
+                data['half_siblings'].append({
                     'id': h.person.id,
                     'full_name': h.person.get_name_years(),
                 })
@@ -302,6 +306,7 @@ class Person(models.Model):
         if family_objects:
             for f in family_objects:
                 family = {
+                    'id': f.id,
                     'partner': {},
                     'children': []
                 }
@@ -388,10 +393,10 @@ class Person(models.Model):
                     'id': e.id, 
                     'model_type': 'family'
                 }
-            if new_event['year']:
-                timeline_events.append(new_event)
-            else:
-                timeline_events_no_year.append(new_event)
+                if new_event['year']:
+                    timeline_events.append(new_event)
+                else:
+                    timeline_events_no_year.append(new_event)
 
         for s in chain(siblings or [], half_siblings or []):
             s_birth = s.person.get_birth_event()

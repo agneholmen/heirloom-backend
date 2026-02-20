@@ -98,9 +98,14 @@ class Action(models.Model):
 @receiver(post_delete, sender=User)
 def user_post_delete_handler(sender, **kwargs):
     user = kwargs['instance']
-    if hasattr(user, 'photo'):
+    if not hasattr(user, 'photo') or not user.photo:
+        return
+
+    try:
         storage, path = user.photo.storage, user.photo.path
         storage.delete(path)
+    except (ValueError, OSError):
+        return
 
-        thumbnailer = get_thumbnailer(user.photo)
-        thumbnailer.delete_thumbnails()
+    thumbnailer = get_thumbnailer(user.photo)
+    thumbnailer.delete_thumbnails()
