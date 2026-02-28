@@ -846,6 +846,33 @@ class TreeViewSet(ModelViewSet):
         if instance.gedcom_file:
             instance.gedcom_file.delete(save=False)
         instance.delete()
+
+    @action(detail=True, methods=['get'], url_path='data_quality')
+    def data_quality(self, request, pk=None):
+        tree = self.get_object()
+
+        items = []
+        for person in Person.objects.filter(tree=tree).order_by('last_name', 'first_name', 'id'):
+            warnings = person.get_data_quality_warnings()
+            if not warnings:
+                continue
+
+            items.append({
+                'person': {
+                    'id': person.id,
+                    'name': person.get_name_years() or f'Person #{person.id}',
+                },
+                'warning_count': len(warnings),
+                'warnings': warnings,
+            })
+
+        return Response({
+            'tree_id': tree.id,
+            'tree_name': tree.name,
+            'people_with_warnings': len(items),
+            'total_warnings': sum(item['warning_count'] for item in items),
+            'items': items,
+        })
     
     @action(detail=True, methods=['get'], url_path='view/(?P<person_pk>[^/.]+)')
     def tree_view(self, request, pk=None, person_pk=None):

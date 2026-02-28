@@ -186,6 +186,108 @@ class Person(models.Model):
     def has_death_event(self):
         return Event.objects.filter(person=self, event_type='death').exists()
 
+    def get_data_quality_warnings(self):
+        warnings = []
+
+        birth_events = Event.objects.filter(person=self, event_type='birth').order_by('id')
+        death_events = Event.objects.filter(person=self, event_type='death').order_by('id')
+
+        if birth_events.count() > 1:
+            warnings.append({
+                'code': 'multiple_birth_events',
+                'message': 'This person has multiple birth events. Only one should exist.',
+            })
+
+        if death_events.count() > 1:
+            warnings.append({
+                'code': 'multiple_death_events',
+                'message': 'This person has multiple death events. Only one should exist.',
+            })
+
+        birth_event = birth_events.first()
+        death_event = death_events.first()
+        birth_year = birth_event.year if birth_event else None
+        death_year = death_event.year if death_event else None
+
+        if birth_year and death_year and birth_year > death_year:
+            warnings.append({
+                'code': 'birth_after_death',
+                'message': f'Birth year ({birth_year}) is after death year ({death_year}).',
+            })
+
+        own_events = Event.objects.filter(person=self).exclude(event_type__in=['birth', 'death'])
+        for event in own_events:
+            if not event.year:
+                continue
+            if birth_year and event.year < birth_year:
+                warnings.append({
+                    'code': 'event_before_birth',
+                    'message': f'{event.get_event_type_display()} ({event.year}) is before birth year ({birth_year}).',
+                })
+            if death_year and event.year > death_year:
+                warnings.append({
+                    'code': 'event_after_death',
+                    'message': f'{event.get_event_type_display()} ({event.year}) is after death year ({death_year}).',
+                })
+
+        parent_family = Family.objects.filter(children__person=self).first()
+        if parent_family and (parent_family.husband_id == self.id or parent_family.wife_id == self.id):
+            warnings.append({
+                'code': 'self_as_parent',
+                'message': 'This person is linked as their own parent.',
+            })
+
+        if parent_family and birth_year:
+            parent_checks = [
+                ('father', parent_family.husband),
+                ('mother', parent_family.wife),
+            ]
+            for parent_label, parent in parent_checks:
+                if not parent:
+                    continue
+
+                parent_birth = parent.get_birth_event()
+                parent_death = parent.get_death_event()
+
+                if parent_birth and parent_birth.year and parent_birth.year > birth_year:
+                    warnings.append({
+                        'code': f'{parent_label}_born_after_child',
+                        'message': f'The {parent_label} appears to be born after this person.',
+                    })
+
+                if parent_death and parent_death.year and parent_death.year < birth_year:
+                    warnings.append({
+                        'code': f'{parent_label}_died_before_child_birth',
+                        'message': f'The {parent_label} appears to have died before this person was born.',
+                    })
+
+        if birth_year or death_year:
+            families = Family.objects.filter(Q(husband=self) | Q(wife=self))
+            children = Child.objects.filter(family__in=families).select_related('person')
+            seen_children = set()
+            for child in children:
+                if child.person_id in seen_children:
+                    continue
+                seen_children.add(child.person_id)
+
+                child_birth = child.person.get_birth_event()
+                if not child_birth or not child_birth.year:
+                    continue
+
+                if birth_year and child_birth.year < birth_year:
+                    warnings.append({
+                        'code': 'child_born_before_parent',
+                        'message': f'Child {child.person.get_name()} appears born before this person.',
+                    })
+
+                if death_year and child_birth.year > death_year:
+                    warnings.append({
+                        'code': 'child_born_after_parent_death',
+                        'message': f'Child {child.person.get_name()} appears born after this person\'s death.',
+                    })
+
+        return warnings
+
     # Serializer data method
     def get_details_data(self):
         data = {
@@ -480,6 +582,7 @@ class Person(models.Model):
         timeline_events.extend(timeline_events_no_year)
 
         data['events'] = timeline_events
+        data['quality_warnings'] = self.get_data_quality_warnings()
 
         return data
 
